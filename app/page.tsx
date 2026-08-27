@@ -36,7 +36,7 @@ export default function Home() {
     <SiteHeader active="/" />
 
     <section className="home-hero" data-reveal>
-      <div className="home-hero-copy hero-copy-panel">
+      <div className="home-hero-copy hero-copy-contrast">
         <h1>Rookie Rackets</h1>
         <p className="hero-kicker">Where Birdies Take Flight</p>
         <p className="hero-description">Free badminton workshops for all ages.<br />No experience or equipment needed.</p>

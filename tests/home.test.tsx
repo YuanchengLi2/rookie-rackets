@@ -8,7 +8,8 @@ describe('homepage', () => {
 
     const heading = screen.getByRole('heading', { name: /rookie rackets/i, level: 1 });
     expect(heading).toBeInTheDocument();
-    expect(heading.parentElement).toHaveClass('hero-copy-panel');
+    expect(heading.parentElement).toHaveClass('hero-copy-contrast');
+    expect(heading.parentElement).not.toHaveClass('hero-copy-panel');
     expect(screen.getByText(/where birdies take flight/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /join waitlist/i })).toHaveAttribute(
       'href',
