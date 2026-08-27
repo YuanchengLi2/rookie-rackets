@@ -6,9 +6,9 @@ describe('homepage', () => {
   it('introduces the program and exposes the primary actions', () => {
     render(<Home />);
 
-    expect(
-      screen.getByRole('heading', { name: /rookie rackets/i, level: 1 }),
-    ).toBeInTheDocument();
+    const heading = screen.getByRole('heading', { name: /rookie rackets/i, level: 1 });
+    expect(heading).toBeInTheDocument();
+    expect(heading.parentElement).toHaveClass('hero-copy-panel');
     expect(screen.getByText(/where birdies take flight/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /join waitlist/i })).toHaveAttribute(
       'href',
