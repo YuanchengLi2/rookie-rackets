@@ -34,7 +34,7 @@ export function HeroCarousel({ slides }: { slides: Slide[] }) {
           />
         ))}
       </div>
-      <div className="hero-dots" aria-hidden="true">{slides.map((slide, index) => <span className={index === active ? 'active' : ''} key={slide.src} />)}</div>
+      <div className="hero-rotation-bar" aria-hidden="true">{slides.map((slide, index) => <span className={index === active ? 'active' : ''} key={slide.src} />)}</div>
     </div>
   );
 }

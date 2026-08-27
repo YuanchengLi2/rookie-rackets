@@ -36,6 +36,9 @@ describe('homepage', () => {
     const gallery = screen.getByRole('region', { name: /workshop photos/i });
     expect(gallery).toHaveClass('hero-media-bleed-left');
     expect(gallery).toHaveClass('hero-media-photo-fade');
+    const rotationBar = gallery.querySelector('.hero-rotation-bar');
+    expect(rotationBar?.querySelectorAll('span')).toHaveLength(4);
+    expect(rotationBar?.querySelectorAll('span')[0]).toHaveClass('active');
     expect(gallery.querySelectorAll('img')).toHaveLength(4);
     expect(screen.queryByRole('button', { name: /previous photo/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /next photo/i })).not.toBeInTheDocument();
@@ -45,6 +48,7 @@ describe('homepage', () => {
     expect(gallery.querySelectorAll('img')[0]).toHaveClass('is-active');
     act(() => vi.advanceTimersByTime(2000));
     expect(gallery.querySelectorAll('img')[1]).toHaveClass('is-active');
+    expect(rotationBar?.querySelectorAll('span')[1]).toHaveClass('active');
     vi.useRealTimers();
   });
 
