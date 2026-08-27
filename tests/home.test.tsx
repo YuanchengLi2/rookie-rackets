@@ -35,6 +35,7 @@ describe('homepage', () => {
 
     const gallery = screen.getByRole('region', { name: /workshop photos/i });
     expect(gallery).toHaveClass('hero-media-bleed-left');
+    expect(gallery).toHaveClass('hero-media-photo-fade');
     expect(gallery.querySelectorAll('img')).toHaveLength(4);
     expect(screen.queryByRole('button', { name: /previous photo/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /next photo/i })).not.toBeInTheDocument();
