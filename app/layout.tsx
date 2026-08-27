@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono, Nunito_Sans } from 'next/font/google';
+import { Fredoka, Geist, Geist_Mono, Manrope } from 'next/font/google';
 import './globals.css';
 import { RevealMotion } from '../components/motion';
 
@@ -13,8 +13,13 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
-const nunitoSans = Nunito_Sans({
-  variable: '--font-home-sans',
+const manrope = Manrope({
+  variable: '--font-home-body',
+  subsets: ['latin'],
+});
+
+const fredoka = Fredoka({
+  variable: '--font-home-display',
   subsets: ['latin'],
 });
 
@@ -31,7 +36,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${nunitoSans.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} ${fredoka.variable} antialiased`}
       >
         <RevealMotion />
         {children}

@@ -20,6 +20,14 @@ describe('homepage', () => {
     );
   });
 
+  it('gives homepage calls to action distinct primary and secondary treatments', () => {
+    render(<Home />);
+
+    expect(screen.getByRole('link', { name: /join waitlist/i })).toHaveClass('home-button-primary');
+    expect(screen.getByRole('link', { name: /view events/i })).toHaveClass('home-button-secondary');
+    expect(screen.getByRole('link', { name: /^sign up →$/i })).toHaveClass('home-button-primary');
+  });
+
   it('uses a slow automatic crossfade without visible carousel arrows', () => {
     vi.useFakeTimers();
     render(<Home />);

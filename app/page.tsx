@@ -40,7 +40,7 @@ export default function Home() {
         <h1>Rookie Rackets</h1>
         <p className="hero-kicker">Where Birdies Take Flight</p>
         <p className="hero-description">Free badminton workshops for all ages.<br />No experience or equipment needed.</p>
-        <div className="actions"><Link className="button" href="/contact">Join Waitlist →</Link><Link className="button button-muted" href="/events">View Events</Link></div>
+        <div className="actions"><Link className="button home-button-primary" href="/contact">Join Waitlist →</Link><Link className="button home-button-secondary" href="/events">View Events</Link></div>
         <p className="trust-line">Coached by nationally trained players in NC.</p>
       </div>
       <HeroCarousel slides={photos.slice(0, 4)} />
@@ -81,7 +81,7 @@ export default function Home() {
 
     <section className="home-network shell" data-reveal><img src="/images/gallery-outreach.webp" alt="Rookie Rackets volunteers with a community partner"/><div><h2>Our growing network</h2><p>Bringing badminton to schools and communities across the Triangle.</p><div className="network-names"><span>Carpenter Elementary</span><span>TMSA Elementary</span><span>Summer Camps</span><span>Community Events</span></div><Link className="text-link" href="/contact">Work with us →</Link></div></section>
 
-    <section className="home-cta" data-reveal><div className="shell"><div><p className="eyebrow">Get started</p><h2>Ready to pick up<br/>a racket?</h2><span>Join the waitlist for upcoming sessions.</span></div><Link className="button" href="/contact">Sign Up →</Link><Link className="text-link" href="/faq">Read the FAQ</Link></div></section>
+    <section className="home-cta" data-reveal><div className="shell"><div><p className="eyebrow">Get started</p><h2>Ready to pick up<br/>a racket?</h2><span>Join the waitlist for upcoming sessions.</span></div><Link className="button home-button-primary" href="/contact">Sign Up →</Link><Link className="text-link" href="/faq">Read the FAQ</Link></div></section>
     <SiteFooter />
   </main>;
 }
