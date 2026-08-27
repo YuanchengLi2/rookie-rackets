@@ -20,7 +20,7 @@ export function HeroCarousel({ slides }: { slides: Slide[] }) {
     <div
       aria-label="Workshop photos"
       aria-roledescription="carousel"
-      className="hero-media hero-media-bleed-left hero-media-photo-fade"
+      className="hero-media hero-media-bleed-left hero-media-photo-fade hero-media-copy-safe"
       role="region"
     >
       <div className="hero-slides" aria-live="off">

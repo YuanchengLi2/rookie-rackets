@@ -84,5 +84,6 @@ body:not(.motion-ready) [data-reveal]{opacity:1;transform:none}.motion-ready [da
 .lightbox-thumbs button{flex:0 0 70px}
 @media(max-width:900px){.header-cta{min-width:104px;padding-inline:20px}}
 .home-page .home-hero h1,.home-page .home-hero .hero-kicker,.home-page .home-hero .hero-description,.home-page .home-hero .trust-line{color:#111}
-@media(max-width:900px){.home-hero .hero-media{height:500px}.hero-rotation-bar{bottom:18px;right:18px;width:calc(100% - 36px)}}
+.home-hero .hero-media-copy-safe .hero-slides{-webkit-mask-image:linear-gradient(90deg,transparent 0%,transparent 18%,rgba(0,0,0,.12) 26%,rgba(0,0,0,.55) 40%,#000 55%);mask-image:linear-gradient(90deg,transparent 0%,transparent 18%,rgba(0,0,0,.12) 26%,rgba(0,0,0,.55) 40%,#000 55%)}
+@media(max-width:900px){.home-hero .hero-media{height:500px}.home-hero .hero-media-copy-safe .hero-slides{-webkit-mask-image:none;mask-image:none}.hero-rotation-bar{bottom:18px;right:18px;width:calc(100% - 36px)}}
 @media(max-width:600px){.home-hero .hero-media{height:400px}}

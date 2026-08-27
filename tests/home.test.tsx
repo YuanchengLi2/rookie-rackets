@@ -36,6 +36,7 @@ describe('homepage', () => {
     const gallery = screen.getByRole('region', { name: /workshop photos/i });
     expect(gallery).toHaveClass('hero-media-bleed-left');
     expect(gallery).toHaveClass('hero-media-photo-fade');
+    expect(gallery).toHaveClass('hero-media-copy-safe');
     const rotationBar = gallery.querySelector('.hero-rotation-bar');
     expect(rotationBar?.querySelectorAll('span')).toHaveLength(4);
     expect(rotationBar?.querySelectorAll('span')[0]).toHaveClass('active');
