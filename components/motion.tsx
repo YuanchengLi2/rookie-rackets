@@ -50,7 +50,7 @@ export function RevealMotion() {
     const observer = !reducedMotion && 'IntersectionObserver' in window ? new IntersectionObserver((entries) => entries.forEach((entry) => {
       if (entry.isIntersecting) {
         entry.target.classList.add('is-revealed');
-        observer.unobserve(entry.target);
+        observer?.unobserve(entry.target);
       }
     }), { rootMargin: '0px 0px -8% 0px', threshold: 0.12 }) : null;
     const register = (node: Element) => {
@@ -59,13 +59,13 @@ export function RevealMotion() {
       if (observer) observer.observe(node);
       else node.classList.add('is-revealed');
     };
-    const scan = (root: ParentNode) => {
-      if (root instanceof Element && root.matches('[data-reveal]')) register(root);
+    const scan = (root: Document | HTMLElement) => {
+      if (root instanceof HTMLElement && root.matches('[data-reveal]')) register(root);
       root.querySelectorAll('[data-reveal]').forEach(register);
     };
     scan(document);
     const mutationObserver = new MutationObserver((records) => records.forEach((record) => record.addedNodes.forEach((node) => {
-      if (node instanceof Element) scan(node);
+      if (node instanceof HTMLElement) scan(node);
     })));
     mutationObserver.observe(document.body, { childList: true, subtree: true });
     return () => {
