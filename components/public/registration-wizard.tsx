@@ -181,6 +181,25 @@ export function RegistrationWizard({ programId }: { programId: string }) {
     );
   }
 
+  if (state.session?.role !== 'family') {
+    const nextPath = `/register/${program.slug}`;
+    return (
+      <section className="register-shell shell">
+        <Link className="event-detail-back" href={`/events/${program.slug}`}><ArrowLeft size={15} /> {program.name}</Link>
+        <div className="registration-access-card">
+          <p className="eyebrow">Family access</p>
+          <h1>Start your camp registration</h1>
+          <p>Sign in or create a family account first. Your dates, forms, and payment details will stay together in My Camps.</p>
+          <DemoNotice />
+          <div className="registration-access-actions">
+            <Link className="button" href={`/sign-in?mode=login&next=${encodeURIComponent(nextPath)}`}>Sign in to my account <ArrowRight size={16} /></Link>
+            <Link className="button button-outline" href={`/sign-in?mode=signup&next=${encodeURIComponent(nextPath)}`}>Create a family account</Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   if (submittedStatus) {
     return (
       <section className="registration-success shell">
