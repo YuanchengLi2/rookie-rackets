@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { DemoNotice } from './demo/demo-ui';
 
 export type Photo = { src: string; alt: string; caption: string };
 export type Quote = { quote: string; name: string; role: string };
@@ -113,10 +114,11 @@ export function SignupForm() {
     }
     setError(''); setSubmitted(true);
   };
-  if (submitted) return <div className="form-success" role="status"><span aria-hidden="true">✓</span><p className="eyebrow">Submission received</p><h2>You’re on the list.</h2><p>We’ll email you when new Rookie Rackets sessions open.</p><button className="text-link" onClick={() => setSubmitted(false)} type="button">Add another participant →</button></div>;
+  if (submitted) return <div className="form-success" role="status"><span aria-hidden="true">✓</span><p className="eyebrow">Demo submission saved locally</p><h2>You’re on the list.</h2><p>No email was sent. This prototype only keeps the confirmation in this browser.</p><button className="text-link" onClick={() => setSubmitted(false)} type="button">Add another participant →</button></div>;
   return (
     <form className="signup-form" noValidate onSubmit={submit}>
       <div className="form-heading"><div><p className="eyebrow">Parent contact</p><h2>Sign Up for Updates</h2></div><span>Required fields *</span></div>
+      <DemoNotice />
       {error && <p className="form-error" role="alert">{error}</p>}
       <fieldset><legend>Parent or guardian</legend>
         <label>Parent / Guardian Name *<input name="parentName" required /></label>

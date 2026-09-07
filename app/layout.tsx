@@ -1,7 +1,13 @@
 import type { Metadata } from 'next';
 import { Fredoka, Geist, Geist_Mono, Manrope } from 'next/font/google';
 import './globals.css';
+import './demo.css';
+import './public-flows.css';
+import './portal/portal.css';
+import './staff/staff.css';
+import './demo-polish.css';
 import { RevealMotion } from '../components/motion';
+import { DemoProvider } from '../components/demo/demo-provider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -35,11 +41,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} ${fredoka.variable} antialiased`}
-      >
-        <RevealMotion />
-        {children}
+      <body className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} ${fredoka.variable} antialiased`}>
+        <DemoProvider>
+          <RevealMotion />
+          {children}
+        </DemoProvider>
       </body>
     </html>
   );
