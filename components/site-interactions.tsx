@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { DemoNotice } from './demo/demo-ui';
 
 export type Photo = { src: string; alt: string; caption: string };
 export type Quote = { quote: string; name: string; role: string };
@@ -102,8 +101,10 @@ const workshopOptions = ['Beginner Fundamentals','Intermediate Skills','Open Pla
 
 export function SignupForm() {
   const [error, setError] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const [receipt, setReceipt] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const idempotencyKey = useRef(crypto.randomUUID());
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     const required = Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[required]'));
@@ -112,14 +113,33 @@ export function SignupForm() {
       required.find((field) => !field.value.trim())?.focus();
       return;
     }
-    setError(''); setSubmitted(true);
+    const data = new FormData(form);
+    setError(''); setSubmitting(true);
+    try {
+      const response = await fetch('/api/interests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idempotencyKey: idempotencyKey.current,
+          website: String(data.get('website') ?? ''),
+          submission: Object.fromEntries(['parentName','phone','email','childName','grade','school','workshop','referral','comments'].map((name) => [name, String(data.get(name) ?? '')])),
+        }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body?.error?.message ?? 'Sign-up could not be saved.');
+      setReceipt(body.receipt.publicReference);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Sign-up could not be saved.');
+    } finally {
+      setSubmitting(false);
+    }
   };
-  if (submitted) return <div className="form-success" role="status"><span aria-hidden="true">✓</span><p className="eyebrow">Demo submission saved locally</p><h2>You’re on the list.</h2><p>No email was sent. This prototype only keeps the confirmation in this browser.</p><button className="text-link" onClick={() => setSubmitted(false)} type="button">Add another participant →</button></div>;
+  if (receipt) return <div className="form-success" role="status"><span aria-hidden="true">✓</span><p className="eyebrow">Interest saved · {receipt}</p><h2>You’re on the list.</h2><p>Our team can now see your sign-up and will contact you when a matching session opens.</p><button className="text-link" onClick={() => { idempotencyKey.current = crypto.randomUUID(); setReceipt(''); }} type="button">Add another participant →</button></div>;
   return (
-    <form className="signup-form" noValidate onSubmit={submit}>
+    <form className="signup-form" noValidate onSubmit={(event) => void submit(event)}>
       <div className="form-heading"><div><p className="eyebrow">Parent contact</p><h2>Sign Up for Updates</h2></div><span>Required fields *</span></div>
-      <DemoNotice />
       {error && <p className="form-error" role="alert">{error}</p>}
+      <label className="sr-only" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" /></label>
       <fieldset><legend>Parent or guardian</legend>
         <label>Parent / Guardian Name *<input name="parentName" required /></label>
         <label>Phone Number *<input inputMode="tel" name="phone" required /></label>
@@ -135,7 +155,7 @@ export function SignupForm() {
         <label>How did you hear about us? *<input name="referral" placeholder="Friend, social media, school…" required /></label>
         <label className="full-field">Questions or comments <span>(optional)</span><textarea name="comments" placeholder="Anything you’d like us to know…" rows={4} /></label>
       </fieldset>
-      <button className="button form-submit" type="submit">Sign Me Up →</button>
+      <button className="button form-submit" disabled={submitting} type="submit">{submitting ? 'Saving…' : 'Sign Me Up →'}</button>
       <p className="privacy-note">Your information stays private. We only use it to notify you about Rookie Rackets sessions.</p>
     </form>
   );

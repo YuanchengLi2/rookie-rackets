@@ -53,12 +53,13 @@ export interface Task { id: string; title: string; ownerId: string | null; dueDa
 export interface FinanceEntry { id: string; kind: FinanceKind; programId: string | null; projectId: string | null; date: string; description: string; category: string; amountCents: number; paidBy: string; receiptFileId: string | null; reimbursementStatus: 'not-applicable' | 'requested' | 'approved' | 'paid'; createdBy: string | null; createdAt: string; updatedAt: string; archivedAt: string | null; }
 export interface StoredFile { id: string; storagePath: string; name: string; mediaType: string; sizeBytes: number; category: 'document' | 'receipt' | 'curriculum' | 'notes'; uploadedBy: string | null; programId: string | null; organizationId: string | null; projectId: string | null; registrationId: string | null; createdAt: string; }
 export interface ActivityRecord { id: string; actorId: string | null; action: string; entityType: string; entityId: string | null; summary: string; metadata: Record<string, unknown>; createdAt: string; }
+export interface InterestSignup { id: string; publicReference: string; parentName: string; phone: string; email: string; childName: string; grade: string; school: string; workshop: string; referral: string; comments: string; status: 'new' | 'contacted' | 'converted' | 'archived'; submittedAt: string; createdAt: string; updatedAt: string; archivedAt: string | null; }
 
 export interface OperationsState {
   staffProfiles: StaffProfile[]; settings: WorkspaceSettings | null; programs: Program[]; sessions: SessionRecord[]; coaches: Coach[];
   assignments: CoachAssignment[]; registrations: Registration[]; consents: ConsentRecord[]; payments: PaymentRecord[];
   attendance: AttendanceRecord[]; organizations: Organization[]; interactions: OrganizationInteraction[]; projects: Project[];
-  tasks: Task[]; financeEntries: FinanceEntry[]; files: StoredFile[]; activity: ActivityRecord[];
+  tasks: Task[]; financeEntries: FinanceEntry[]; files: StoredFile[]; activity: ActivityRecord[]; interestSignups: InterestSignup[];
 }
 
 export type ProgramDraft = Omit<Program, 'id' | 'createdAt' | 'updatedAt' | 'archivedAt'>;
@@ -73,5 +74,5 @@ export type FinanceEntryDraft = Omit<FinanceEntry, 'id' | 'receiptFileId' | 'cre
 
 export const emptyOperationsState = (): OperationsState => ({
   staffProfiles: [], settings: null, programs: [], sessions: [], coaches: [], assignments: [], registrations: [], consents: [], payments: [],
-  attendance: [], organizations: [], interactions: [], projects: [], tasks: [], financeEntries: [], files: [], activity: [],
+  attendance: [], organizations: [], interactions: [], projects: [], tasks: [], financeEntries: [], files: [], activity: [], interestSignups: [],
 });

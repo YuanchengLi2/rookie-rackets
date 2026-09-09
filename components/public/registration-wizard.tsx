@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2 } from 'lucide-react';
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import type { PublicProgramBundle } from '../../lib/data/public-programs';
 import type { RegistrationReceipt } from '../../lib/data/registration-contract';
 

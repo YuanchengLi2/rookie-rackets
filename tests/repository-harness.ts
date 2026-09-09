@@ -17,7 +17,7 @@ export function createTestOperationsState(): OperationsState {
 }
 
 export function createRepositoryHarness(initial: OperationsState) {
-  let state = structuredClone(initial);
+  const state = structuredClone(initial);
   const subscribers = new Set<() => void>();
   const base = {
     loadWorkspace: vi.fn(async () => structuredClone(state)),

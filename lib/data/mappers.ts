@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type {
   ActivityRecord, AttendanceRecord, Coach, CoachAssignment, ConsentRecord, FinanceEntry, OperationsState,
-  Organization, OrganizationInteraction, PaymentRecord, Program, Project, Registration, SessionCurriculum,
+  InterestSignup, Organization, OrganizationInteraction, PaymentRecord, Program, Project, Registration, SessionCurriculum,
   SessionRecord, StaffProfile, StoredFile, Task, WorkspaceSettings,
 } from './types';
 
@@ -30,7 +30,7 @@ export interface WorkspaceRows {
   staffProfiles: Row[]; settings: Row[]; programs: Row[]; sessions: Row[]; coaches: Row[]; assignments: Row[];
   registrations: Row[]; registrationSessions: Row[]; consents: Row[]; payments: Row[]; attendance: Row[];
   organizations: Row[]; organizationSupport: Row[]; interactions: Row[]; projects: Row[]; projectContributors: Row[];
-  tasks: Row[]; financeEntries: Row[]; files: Row[]; activity: Row[];
+  tasks: Row[]; financeEntries: Row[]; files: Row[]; activity: Row[]; interestSignups: Row[];
 }
 
 export function mapWorkspaceRows(rows: WorkspaceRows): OperationsState {
@@ -59,6 +59,7 @@ export function mapWorkspaceRows(rows: WorkspaceRows): OperationsState {
     financeEntries: rows.financeEntries.map((row): FinanceEntry => ({ id: text(row, 'id'), kind: text(row, 'kind') as FinanceEntry['kind'], programId: nullableText(row, 'program_id'), projectId: nullableText(row, 'project_id'), date: text(row, 'date'), description: text(row, 'description'), category: text(row, 'category'), amountCents: number(row, 'amount_cents'), paidBy: text(row, 'paid_by'), receiptFileId: nullableText(row, 'receipt_file_id'), reimbursementStatus: text(row, 'reimbursement_status') as FinanceEntry['reimbursementStatus'], createdBy: nullableText(row, 'created_by'), createdAt: text(row, 'created_at'), updatedAt: text(row, 'updated_at'), archivedAt: nullableText(row, 'archived_at') })),
     files: rows.files.map((row): StoredFile => ({ id: text(row, 'id'), storagePath: text(row, 'storage_path'), name: text(row, 'name'), mediaType: text(row, 'media_type'), sizeBytes: number(row, 'size_bytes'), category: text(row, 'category') as StoredFile['category'], uploadedBy: nullableText(row, 'uploaded_by'), programId: nullableText(row, 'program_id'), organizationId: nullableText(row, 'organization_id'), projectId: nullableText(row, 'project_id'), registrationId: nullableText(row, 'registration_id'), createdAt: text(row, 'created_at') })),
     activity: rows.activity.map((row): ActivityRecord => ({ id: text(row, 'id'), actorId: nullableText(row, 'actor_id'), action: text(row, 'action'), entityType: text(row, 'entity_type'), entityId: nullableText(row, 'entity_id'), summary: text(row, 'summary'), metadata: (row.metadata && typeof row.metadata === 'object' ? row.metadata : {}) as Record<string, unknown>, createdAt: text(row, 'created_at') })),
+    interestSignups: rows.interestSignups.map((row): InterestSignup => ({ id: text(row, 'id'), publicReference: text(row, 'public_reference'), parentName: text(row, 'parent_name'), phone: text(row, 'phone'), email: text(row, 'email'), childName: text(row, 'child_name'), grade: text(row, 'grade'), school: text(row, 'school'), workshop: text(row, 'workshop'), referral: text(row, 'referral'), comments: text(row, 'comments'), status: text(row, 'status') as InterestSignup['status'], submittedAt: text(row, 'submitted_at'), createdAt: text(row, 'created_at'), updatedAt: text(row, 'updated_at'), archivedAt: nullableText(row, 'archived_at') })),
   };
 }
 

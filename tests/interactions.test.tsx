@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   FaqAccordion,
   GalleryLightbox,
@@ -9,6 +9,7 @@ import {
 } from '../components/site-interactions';
 
 describe('site interactions', () => {
+  afterEach(() => vi.unstubAllGlobals());
   it('opens and closes the full-screen photo gallery', async () => {
     const user = userEvent.setup();
     render(<GalleryLightbox photos={[
@@ -50,6 +51,8 @@ describe('site interactions', () => {
   });
 
   it('validates and confirms a complete waitlist form', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ receipt: { publicReference: 'RI-ABC12345' } }) });
+    vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
     render(<SignupForm />);
 
@@ -67,5 +70,7 @@ describe('site interactions', () => {
     await user.click(screen.getByRole('button', { name: /sign me up/i }));
 
     expect(screen.getByRole('heading', { name: /you.*on the list/i })).toBeInTheDocument();
+    expect(screen.getByText(/RI-ABC12345/)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith('/api/interests', expect.objectContaining({ method: 'POST' }));
   });
 });

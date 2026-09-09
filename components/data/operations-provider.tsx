@@ -24,9 +24,7 @@ interface OperationsContextValue {
 const OperationsContext = createContext<OperationsContextValue | null>(null);
 
 export function OperationsProvider({ children, repository: providedRepository }: { children: React.ReactNode; repository?: OperationsRepository }) {
-  const repositoryRef = useRef<OperationsRepository | null>(null);
-  if (!repositoryRef.current) repositoryRef.current = providedRepository ?? createSupabaseOperationsRepository();
-  const repository = repositoryRef.current;
+  const [repository] = useState<OperationsRepository>(() => providedRepository ?? createSupabaseOperationsRepository());
   const [state, setState] = useState<OperationsState>(emptyOperationsState);
   const [status, setStatus] = useState<OperationsStatus>('loading');
   const [error, setError] = useState<DomainError | null>(null);
@@ -50,7 +48,7 @@ export function OperationsProvider({ children, repository: providedRepository }:
 
   useEffect(() => {
     mounted.current = true;
-    void refresh();
+    queueMicrotask(() => { void refresh(); });
     let timer: ReturnType<typeof setTimeout> | null = null;
     const unsubscribe = repository.subscribe(() => {
       if (timer) clearTimeout(timer);

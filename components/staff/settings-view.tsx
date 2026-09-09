@@ -1,7 +1,7 @@
 'use client';
 
 import { Save, ShieldCheck, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { WorkspaceSettings } from '../../lib/data/types';
 import { useOperations } from '../data/operations-provider';
 
@@ -9,7 +9,6 @@ export function SettingsView() {
   const { state, mutate, isSaving, staff } = useOperations();
   const [draft, setDraft] = useState<WorkspaceSettings | null>(state.settings);
   const [file, setFile] = useState<File | null>(null);
-  useEffect(() => { setDraft(state.settings); }, [state.settings]);
   if (!draft) return <div className="staff-page"><div className="staff-panel"><h1>Settings unavailable</h1><p>The workspace settings record could not be loaded.</p></div></div>;
   const set = (key: keyof WorkspaceSettings, value: string) => setDraft((current) => current ? { ...current, [key]: value } : current);
   const save = async (event: React.FormEvent) => { event.preventDefault(); try { await mutate('settings:update', (repository) => repository.updateSettings(draft), 'Workspace settings saved.'); } catch { /* Keep form values for retry. */ } };

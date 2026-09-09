@@ -7,6 +7,7 @@ import type {
   FinanceEntry,
   FinanceEntryDraft,
   InteractionDraft,
+  InterestSignup,
   OperationsState,
   Organization,
   OrganizationDraft,
@@ -80,6 +81,7 @@ export interface OperationsRepository {
   upsertAttendance(registrationId: string, sessionId: string, status: AttendanceStatus, note?: string): Promise<void>;
   recordPayment(draft: PaymentDraft): Promise<PaymentRecord>;
   archiveRegistration(id: string): Promise<void>;
+  updateInterestSignup(id: string, status: InterestSignup['status']): Promise<InterestSignup>;
   createOrganization(draft: OrganizationDraft): Promise<Organization>;
   updateOrganization(id: string, patch: Partial<OrganizationDraft>): Promise<Organization>;
   archiveOrganization(id: string): Promise<void>;

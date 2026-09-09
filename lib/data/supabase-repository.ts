@@ -3,7 +3,7 @@ import { createBrowserSupabaseClient } from '../supabase/browser';
 import { DomainError, toDomainError } from './errors';
 import { mapWorkspaceRows, toSnakeCaseRecord, type WorkspaceRows } from './mappers';
 import type {
-  Coach, CoachDraft, FinanceEntry, FinanceEntryDraft, InteractionDraft, OperationsState, Organization, OrganizationDraft,
+  Coach, CoachDraft, FinanceEntry, FinanceEntryDraft, InteractionDraft, InterestSignup, OperationsState, Organization, OrganizationDraft,
   PaymentRecord, Program, ProgramDraft, Project, ProjectDraft, Registration, RegistrationPatch, SessionDraft, SessionRecord,
   StaffProfile, Task, TaskDraft, WorkspaceSettings,
 } from './types';
@@ -53,8 +53,9 @@ export class SupabaseOperationsRepository implements OperationsRepository {
       this.rows('organization_interactions', 'occurred_on', false), this.rows('projects', 'target_date'),
       this.rows('project_contributors', 'project_id'), this.rows('tasks', 'due_date'),
       this.rows('finance_entries', 'date', false), this.rows('files', 'created_at', false), this.rows('activity_log', 'created_at', false),
+      this.rows('interest_signups', 'submitted_at', false),
     ]);
-    const keys: Array<keyof WorkspaceRows> = ['staffProfiles', 'settings', 'programs', 'sessions', 'coaches', 'assignments', 'registrations', 'registrationSessions', 'consents', 'payments', 'attendance', 'organizations', 'organizationSupport', 'interactions', 'projects', 'projectContributors', 'tasks', 'financeEntries', 'files', 'activity'];
+    const keys: Array<keyof WorkspaceRows> = ['staffProfiles', 'settings', 'programs', 'sessions', 'coaches', 'assignments', 'registrations', 'registrationSessions', 'consents', 'payments', 'attendance', 'organizations', 'organizationSupport', 'interactions', 'projects', 'projectContributors', 'tasks', 'financeEntries', 'files', 'activity', 'interestSignups'];
     return mapWorkspaceRows(Object.fromEntries(keys.map((key, index) => [key, requests[index]])) as unknown as WorkspaceRows);
   }
 
@@ -118,6 +119,7 @@ export class SupabaseOperationsRepository implements OperationsRepository {
   async upsertAttendance(registrationId: string, sessionId: string, status: import('./types').AttendanceStatus, note = ''): Promise<void> { const result = await this.supabase.from('attendance').upsert({ registration_id: registrationId, session_id: sessionId, status, note }, { onConflict: 'registration_id,session_id' }); if (result.error) databaseError(result.error); }
   async recordPayment(draft: PaymentDraft): Promise<PaymentRecord> { const result = await this.supabase.from('payments').insert(toSnakeCaseRecord(draft as unknown as Row)).select('id').single(); if (result.error) databaseError(result.error); await this.write('registrations', 'update', { payment_status: draft.status }, draft.registrationId); return this.findAfter('payments', String(result.data.id)); }
   async archiveRegistration(id: string): Promise<void> { await this.write('registrations', 'update', { registration_status: 'archived', archived_at: new Date().toISOString() }, id); }
+  async updateInterestSignup(id: string, status: InterestSignup['status']): Promise<InterestSignup> { await this.write('interest_signups', 'update', { status, archived_at: status === 'archived' ? new Date().toISOString() : null }, id); return this.findAfter('interestSignups', id); }
 
   async createOrganization(draft: OrganizationDraft): Promise<Organization> { const support = draft.supportStaffIds; const result = await this.supabase.from('organizations').insert(clean(toSnakeCaseRecord({ ...draft, supportStaffIds: undefined } as Row))).select('id').single(); if (result.error) databaseError(result.error); const id = String(result.data.id); await this.replaceJoin('organization_support_staff', 'organization_id', 'staff_id', id, support); return this.findAfter('organizations', id); }
   async updateOrganization(id: string, patch: Partial<OrganizationDraft>): Promise<Organization> { const support = patch.supportStaffIds; await this.write('organizations', 'update', clean(toSnakeCaseRecord({ ...patch, supportStaffIds: undefined } as Row)), id); if (support) await this.replaceJoin('organization_support_staff', 'organization_id', 'staff_id', id, support); return this.findAfter('organizations', id); }
