@@ -37,7 +37,7 @@ export default function Home() {
 
     <section className="home-hero" data-reveal>
       <div className="home-hero-copy hero-copy-contrast">
-        <h1>Rookies Rackets</h1>
+        <h1>Rookie Rackets</h1>
         <p className="hero-kicker">Where Birdies Take Flight</p>
         <p className="hero-description">Free badminton workshops for all ages.<br />No experience or equipment needed.</p>
         <div className="actions"><Link className="button home-button-primary" href="/contact">Join Waitlist →</Link><Link className="button home-button-secondary" href="/events">View Events</Link></div>
