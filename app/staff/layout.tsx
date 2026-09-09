@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import { SessionGuard } from '../../components/demo/session-guard';
+import { StaffGuard } from '../../components/auth/staff-guard';
 import { StaffShell } from '../../components/staff/staff-shell';
 
 export const metadata: Metadata = { title: 'Operations desk · Rookie Rackets', robots: { index: false, follow: false } };
 
-export default function StaffLayout({ children }: { children: React.ReactNode }) { return <SessionGuard role="staff"><StaffShell>{children}</StaffShell></SessionGuard>; }
+export default function StaffLayout({ children }: { children: React.ReactNode }) { return <StaffGuard><StaffShell>{children}</StaffShell></StaffGuard>; }
