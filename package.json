@@ -10,13 +10,18 @@
     "build": "vinext build",
     "start": "vinext start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:focused": "vitest run --maxWorkers=1 --no-file-parallelism",
+    "check": "npm run test:focused && npm run lint && tsc --noEmit && npm run build"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.116.0",
     "lucide-react": "1.39.0",
     "next": "16.2.6",
     "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "react-dom": "19.2.6",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",
