@@ -26,9 +26,11 @@ export type RegistrationStatus =
   | 'offer-sent'
   | 'canceled'
   | 'completed'
-  | 'refunded';
+  | 'refunded'
+  | 'archived';
 
 export type PaymentStatus =
+  | 'unpaid'
   | 'pending'
   | 'paid'
   | 'failed'
@@ -321,7 +323,7 @@ export interface ActivityRecord {
 
 export interface DemoState {
   version: 2;
-  demoDate: '2026-09-02';
+  demoDate: string;
   session: DemoSession | null;
   familyProfiles: FamilyProfile[];
   staffProfiles: StaffProfile[];

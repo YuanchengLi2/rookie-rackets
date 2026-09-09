@@ -6,8 +6,8 @@ import { ProgramsView } from '../components/staff/programs-view';
 import { ProgramDetail } from '../components/staff/program-detail';
 import { OrganizationDetail } from '../components/staff/organization-detail';
 import { ProjectDetail } from '../components/staff/project-detail';
-import { renderWithDemo } from './test-utils';
-import { useDemo } from '../components/demo/demo-provider';
+import { renderWithDemo, renderWithOperations } from './test-utils';
+import { DemoProvider, useDemo } from '../components/demo/demo-provider';
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/staff', useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
@@ -17,12 +17,12 @@ describe('staff core mock', () => {
     renderWithDemo(<StaffHome />);
     expect(screen.getByRole('heading', { name: /operations/i })).toBeInTheDocument();
     cleanup();
-    renderWithDemo(<ProgramsView />);
+    const { repository } = renderWithOperations(<DemoProvider persistent><ProgramsView /></DemoProvider>);
     await user.click(screen.getByRole('button', { name: /create program/i }));
     await user.type(screen.getByLabelText(/program name/i), 'Demo Rally');
     await user.type(screen.getByLabelText(/venue/i), 'Demo Court');
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^create program$/i }));
-    expect(screen.getByText(/demo rally/i)).toBeInTheDocument();
+    expect(repository.createProgram).toHaveBeenCalledWith(expect.objectContaining({ name: 'Demo Rally', venue: 'Demo Court' }));
   });
 
   it('provides direct paths from the home screen to core daily work', () => {

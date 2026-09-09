@@ -2,200 +2,65 @@
 
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { formatDemoDate, getProgram, getProgramCapacity, getProgramSessions } from '../../lib/demo/selectors';
-import type { RegistrationDraft } from '../../lib/demo/types';
-import { useDemo } from '../demo/demo-provider';
-import { DemoNotice, FieldError } from '../demo/demo-ui';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
+import type { PublicProgramBundle } from '../../lib/data/public-programs';
+import type { RegistrationReceipt } from '../../lib/data/registration-contract';
 
-const emptyDraft: RegistrationDraft = {
-  programId: '', childFirstName: '', childLastName: '', dateOfBirth: '', grade: '', skillLevel: '',
-  guardianFirstName: '', guardianLastName: '', guardianEmail: '', guardianPhone: '',
-  emergencyName: '', emergencyRelationship: '', emergencyPhone: '', supportNotes: '',
-  needsRacket: true, parentOnsite: false, selectedSessionIds: [], photoConsent: false,
-  participationAccepted: false, acknowledgmentAccepted: false, pickupAccepted: false,
+type Draft = {
+  childFirstName: string; childLastName: string; dateOfBirth: string; grade: string; skillLevel: string;
+  guardianFirstName: string; guardianLastName: string; guardianEmail: string; guardianPhone: string;
+  emergencyName: string; emergencyRelationship: string; emergencyPhone: string; supportNotes: string;
+  needsRacket: boolean; parentOnsite: boolean; selectedSessionIds: string[]; photoConsent: boolean;
+  participationAccepted: boolean; acknowledgmentAccepted: boolean; pickupAccepted: boolean;
 };
+const emptyDraft: Draft = { childFirstName: '', childLastName: '', dateOfBirth: '', grade: '', skillLevel: '', guardianFirstName: '', guardianLastName: '', guardianEmail: '', guardianPhone: '', emergencyName: '', emergencyRelationship: '', emergencyPhone: '', supportNotes: '', needsRacket: true, parentOnsite: false, selectedSessionIds: [], photoConsent: false, participationAccepted: false, acknowledgmentAccepted: false, pickupAccepted: false };
+type Step = 'player' | 'dates' | 'forms' | 'payment' | 'review';
+const requiredPlayer = ['childFirstName', 'childLastName', 'dateOfBirth', 'grade', 'skillLevel', 'guardianFirstName', 'guardianLastName', 'guardianEmail', 'guardianPhone', 'emergencyName', 'emergencyRelationship', 'emergencyPhone'] as const;
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const phonePattern = /^\+?[\d\s().-]{7,}$/;
+function Field({ label, invalid, children }: { label: string; invalid?: boolean; children: ReactNode }) { return <label className={invalid ? 'has-error' : undefined}>{label}{children}{invalid && <small className="field-inline-error">Check this field</small>}</label>; }
+function dateLabel(date: string, weekday = false) { return new Intl.DateTimeFormat('en-US', { weekday: weekday ? 'short' : undefined, month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`)); }
+function timeLabel(time: string) { const [hour, minute] = time.split(':').map(Number); return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' }).format(new Date(Date.UTC(2020, 0, 1, hour, minute))); }
 
-type FieldName = keyof RegistrationDraft;
-type StepId = 'player' | 'dates' | 'forms' | 'payment' | 'review';
-
-const playerFields: FieldName[] = [
-  'childFirstName', 'childLastName', 'dateOfBirth', 'grade', 'skillLevel',
-  'guardianFirstName', 'guardianLastName', 'guardianEmail', 'guardianPhone',
-  'emergencyName', 'emergencyRelationship', 'emergencyPhone',
-];
-
-function isEmail(value: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()); }
-function isPhone(value: string) { return /^\+?[\d\s().-]{7,}$/.test(value.trim()); }
-
-function Field({ label, invalid, children }: { label: string; invalid?: boolean; children: ReactNode }) {
-  return <label className={invalid ? 'has-error' : undefined}>{label}{children}{invalid && <small className="field-inline-error">Required field</small>}</label>;
-}
-
-export function RegistrationWizard({ programId }: { programId: string }) {
-  const { state, registerForProgram } = useDemo();
-  const router = useRouter();
-  const program = getProgram(state, programId);
-  const steps = useMemo<StepId[]>(() => program?.price ? ['player', 'dates', 'forms', 'payment', 'review'] : ['player', 'dates', 'forms', 'review'], [program?.price]);
+export function RegistrationWizard({ bundle }: { bundle: PublicProgramBundle | null }) {
+  const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [stepIndex, setStepIndex] = useState(0);
-  const currentStep = steps[stepIndex] ?? 'player';
-  const [draft, setDraft] = useState<RegistrationDraft>({ ...emptyDraft, programId });
-  const [error, setError] = useState('');
   const [showErrors, setShowErrors] = useState(false);
-  const focusRequest = useRef<FieldName | null>(null);
-  const [focusTick, setFocusTick] = useState(0);
-  const [registrationId, setRegistrationId] = useState<string | null>(null);
-  const [submittedStatus, setSubmittedStatus] = useState<'confirmed' | 'waitlisted' | null>(null);
+  const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-
-  const availableSessions = useMemo(() => program ? getProgramSessions(state, program.id).filter((session) => session.status === 'scheduled' && session.date >= state.demoDate) : [], [program, state]);
-  const selectedSessions = availableSessions.filter((session) => draft.selectedSessionIds.includes(session.id));
-  const update = (patch: Partial<RegistrationDraft>) => setDraft((current) => ({ ...current, ...patch }));
-  const setField = (field: FieldName, value: string | boolean) => update({ [field]: value } as Partial<RegistrationDraft>);
-
-  const firstInvalidField = useMemo<FieldName | null>(() => {
-    if (currentStep !== 'player') return null;
-    return playerFields.find((field) => {
-      const value = String(draft[field] ?? '');
-      return !value.trim() || (field === 'guardianEmail' && !isEmail(value)) || ((field === 'guardianPhone' || field === 'emergencyPhone') && !isPhone(value));
-    }) ?? null;
-  }, [currentStep, draft]);
-
-  const isInvalid = (field: FieldName) => {
-    if (!showErrors || currentStep !== 'player') return false;
-    const value = String(draft[field] ?? '');
-    return !value.trim() || (field === 'guardianEmail' && !isEmail(value)) || ((field === 'guardianPhone' || field === 'emergencyPhone') && !isPhone(value));
-  };
-
-  const valid = useMemo(() => {
-    if (currentStep === 'player') return firstInvalidField === null;
-    if (currentStep === 'dates') return draft.selectedSessionIds.length > 0;
-    if (currentStep === 'forms') return draft.participationAccepted && draft.acknowledgmentAccepted && draft.pickupAccepted;
-    return true;
-  }, [currentStep, draft, firstInvalidField]);
-
-  useEffect(() => {
-    const field = focusRequest.current;
-    if (!field) return;
-    document.querySelector<HTMLElement>('[name="' + field + '"]')?.focus();
-    focusRequest.current = null;
-  }, [focusTick]);
-
-  const next = () => {
-    if (!valid) {
-      setShowErrors(true);
-      setError(currentStep === 'dates' ? 'Choose at least one available date.' : currentStep === 'forms' ? 'Accept each required agreement to continue.' : 'Complete the highlighted fields before continuing.');
-      focusRequest.current = firstInvalidField;
-      setFocusTick((value) => value + 1);
-      return;
-    }
-    setShowErrors(false);
-    setError('');
-    setStepIndex((current) => Math.min(steps.length - 1, current + 1));
-  };
-
-  const previous = () => { setShowErrors(false); setError(''); setStepIndex((current) => Math.max(0, current - 1)); };
-  const toggleSession = (id: string, selected: boolean) => update({ selectedSessionIds: selected ? [...draft.selectedSessionIds, id] : draft.selectedSessionIds.filter((value) => value !== id) });
-
-  const submit = () => {
+  const [receipt, setReceipt] = useState<RegistrationReceipt | null>(null);
+  const idempotencyKey = useRef(crypto.randomUUID());
+  if (!bundle) return <section className="register-shell shell"><h1>Registration is unavailable</h1><p className="event-detail-disabled">This program could not be loaded. Refresh the page or return to events.</p><Link className="button" href="/events">Back to events</Link></section>;
+  const { program, sessions } = bundle;
+  const open = ['registration-open', 'active', 'full'].includes(program.status) && sessions.length > 0;
+  if (!open) return <section className="register-shell shell"><Link className="event-detail-back" href={`/events/${program.slug}`}><ArrowLeft size={15} /> {program.name}</Link><h1>Registration is closed</h1><p className="event-detail-disabled">The team is not accepting registrations for this program right now.</p><Link className="button" href="/events">Back to events</Link></section>;
+  const steps: Step[] = program.priceCents > 0 ? ['player', 'dates', 'forms', 'payment', 'review'] : ['player', 'dates', 'forms', 'review'];
+  const current = steps[stepIndex];
+  const update = (patch: Partial<Draft>) => setDraft((value) => ({ ...value, ...patch }));
+  const invalid = (key: typeof requiredPlayer[number]) => { const value = String(draft[key]).trim(); return !value || (key === 'guardianEmail' && !emailPattern.test(value)) || ((key === 'guardianPhone' || key === 'emergencyPhone') && !phonePattern.test(value)); };
+  const valid = current === 'player' ? requiredPlayer.every((field) => !invalid(field)) : current === 'dates' ? draft.selectedSessionIds.length > 0 : current === 'forms' ? draft.participationAccepted && draft.acknowledgmentAccepted && draft.pickupAccepted : true;
+  const next = () => { if (!valid) { setShowErrors(true); setError(current === 'dates' ? 'Choose at least one available date.' : current === 'forms' ? 'Accept each required agreement to continue.' : 'Complete the highlighted fields before continuing.'); return; } setShowErrors(false); setError(''); setStepIndex((value) => Math.min(steps.length - 1, value + 1)); };
+  const previous = () => { setShowErrors(false); setError(''); setStepIndex((value) => Math.max(0, value - 1)); };
+  const toggleSession = (id: string, checked: boolean) => update({ selectedSessionIds: checked ? [...new Set([...draft.selectedSessionIds, id])] : draft.selectedSessionIds.filter((item) => item !== id) });
+  const submit = async () => {
     if (submitting) return;
-    setSubmitting(true);
-    const capacity = program ? getProgramCapacity(state, program.id) : { remaining: 0 };
-    const expectedStatus = program && (program.status === 'full' || capacity.remaining <= 0) ? 'waitlisted' : 'confirmed';
-    const id = registerForProgram(draft);
-    if (!id) {
-      setError('This camp changed before registration finished. Review your dates and try again.');
-      setSubmitting(false);
-      return;
-    }
-    setRegistrationId(id);
-    setSubmittedStatus(expectedStatus);
+    setSubmitting(true); setError('');
+    try {
+      const response = await fetch('/api/registrations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idempotencyKey: idempotencyKey.current, website: '', submission: { programId: program.id, childFirstName: draft.childFirstName, childLastName: draft.childLastName, dateOfBirth: draft.dateOfBirth, grade: draft.grade, skillLevel: draft.skillLevel === 'never-played' ? 'beginner' : draft.skillLevel, guardianFirstName: draft.guardianFirstName, guardianLastName: draft.guardianLastName, guardianEmail: draft.guardianEmail, guardianPhone: draft.guardianPhone, emergencyName: draft.emergencyName, emergencyRelationship: draft.emergencyRelationship, emergencyPhone: draft.emergencyPhone, supportNotes: draft.supportNotes, needsRacket: draft.needsRacket, parentOnsite: draft.parentOnsite, selectedSessionIds: draft.selectedSessionIds, consents: { participationWaiver: draft.participationAccepted, photoVideo: draft.photoConsent, programAcknowledgment: draft.acknowledgmentAccepted, pickupPolicy: draft.pickupAccepted } } }) });
+      const payload = await response.json() as { receipt?: RegistrationReceipt; error?: { message?: string } };
+      if (!response.ok || !payload.receipt) throw new Error(payload.error?.message || 'We could not submit this registration.');
+      setReceipt(payload.receipt);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'We could not submit this registration. Please try again.'); } finally { setSubmitting(false); }
   };
-
-  if (!program) return <section className="register-shell shell"><h1>Camp not found</h1><p className="event-detail-disabled">This demo camp may have been reset or removed.</p><Link className="button" href="/events">Back to events</Link></section>;
-
-  const canRegister = ['registration-open', 'active', 'full'].includes(program.status);
-  if (!canRegister) return <section className="register-shell shell"><Link className="event-detail-back" href={'/events/' + program.slug}><ArrowLeft size={15} /> {program.name}</Link><h1>Registration is closed</h1><p className="event-detail-disabled">This camp is {program.status.replaceAll('-', ' ')} in the demo.</p><Link className="button" href="/events">Back to events</Link></section>;
-
-  if (state.session?.role !== 'family') {
-    const nextPath = '/register/' + program.slug;
-    return <section className="register-shell shell">
-      <Link className="event-detail-back" href={'/events/' + program.slug}><ArrowLeft size={15} /> {program.name}</Link>
-      <div className="registration-access-card">
-        <p className="eyebrow">Family access</p><h1>Start your camp registration</h1>
-        <p>Sign in or create a family account first. Your dates, forms, and payment details will stay together in My Camps.</p>
-        <DemoNotice />
-        <div className="registration-access-actions">
-          <Link className="button" href={'/sign-in?mode=login&next=' + encodeURIComponent(nextPath)}>Sign in to my account <ArrowRight size={16} /></Link>
-          <Link className="button button-outline" href={'/sign-in?mode=signup&next=' + encodeURIComponent(nextPath)}>Create a family account</Link>
-        </div>
-      </div>
-    </section>;
-  }
-
-  if (submittedStatus) return <section className="registration-success shell">
-    <span><CheckCircle2 size={30} /></span><p className="eyebrow">Saved to My Camps</p>
-    <h1>{submittedStatus === 'confirmed' ? 'Registration confirmed' : 'You’re on the waitlist'}</h1>
-    <p>{submittedStatus === 'confirmed' ? 'There’s a place for ' + draft.childFirstName + ' at ' + program.name + '.' : program.name + ' is currently full, so we saved a waitlist request.'}</p>
-    <div><button className="button" type="button" onClick={() => router.push('/portal/camps/' + (registrationId ?? ''))}>Open this camp <ArrowRight size={16} /></button><Link className="text-link" href="/events">Back to events</Link></div>
-  </section>;
-
-  const stepLabels: Record<StepId, string> = { player: 'Player', dates: 'Dates', forms: 'Forms', payment: 'Payment', review: 'Review' };
-  const nextId = steps[stepIndex + 1];
-  const nextLabel = nextId === 'dates' ? 'Continue to dates' : nextId === 'forms' ? 'Continue to forms' : nextId === 'payment' ? 'Continue to payment' : 'Review registration';
-
-  return <section className="register-shell shell">
-    <div className="register-header"><div><Link className="event-detail-back" href={'/events/' + program.slug}><ArrowLeft size={15} /> {program.name}</Link><h1>Register for camp</h1><p>Choose the dates that work, finish the required forms, and you’re in.</p></div><span className="register-program-pill">{program.price === 0 ? 'Free camp' : '$' + program.price}</span></div>
-    <div className="registration-card">
-      <DemoNotice />
-      <div className="registration-progress" aria-label="Registration progress">{steps.map((step, index) => <span className={index <= stepIndex ? 'active' : ''} key={step}>{String(index + 1).padStart(2, '0')} · {stepLabels[step]}</span>)}</div>
-      {error && <FieldError>{error}</FieldError>}
-
-      {currentStep === 'player' && <fieldset><legend>Player and family information</legend><div className="registration-grid">
-        <Field label="Child first name *" invalid={isInvalid('childFirstName')}><input name="childFirstName" value={draft.childFirstName} aria-invalid={isInvalid('childFirstName')} onChange={(event) => setField('childFirstName', event.target.value)} /></Field>
-        <Field label="Child last name *" invalid={isInvalid('childLastName')}><input name="childLastName" value={draft.childLastName} aria-invalid={isInvalid('childLastName')} onChange={(event) => setField('childLastName', event.target.value)} /></Field>
-        <Field label="Date of birth *" invalid={isInvalid('dateOfBirth')}><input name="dateOfBirth" type="date" value={draft.dateOfBirth} aria-invalid={isInvalid('dateOfBirth')} onChange={(event) => setField('dateOfBirth', event.target.value)} /></Field>
-        <Field label="Grade *" invalid={isInvalid('grade')}><select name="grade" aria-label="Grade" value={draft.grade} aria-invalid={isInvalid('grade')} onChange={(event) => setField('grade', event.target.value)}><option value="">Select…</option>{['Kindergarten', '1st Grade', '2nd Grade', '3rd Grade', '4th Grade', '5th Grade', '6th Grade', '7th Grade', '8th Grade', '9th Grade', '10th Grade', '11th Grade', '12th Grade'].map((grade) => <option key={grade}>{grade}</option>)}</select></Field>
-        <Field label="Skill level *" invalid={isInvalid('skillLevel')}><select name="skillLevel" value={draft.skillLevel} aria-invalid={isInvalid('skillLevel')} onChange={(event) => setField('skillLevel', event.target.value)}><option value="">Select…</option><option value="never-played">Never played</option><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></Field>
-        <Field label="Guardian first name *" invalid={isInvalid('guardianFirstName')}><input name="guardianFirstName" value={draft.guardianFirstName} aria-invalid={isInvalid('guardianFirstName')} onChange={(event) => setField('guardianFirstName', event.target.value)} /></Field>
-        <Field label="Guardian last name *" invalid={isInvalid('guardianLastName')}><input name="guardianLastName" value={draft.guardianLastName} aria-invalid={isInvalid('guardianLastName')} onChange={(event) => setField('guardianLastName', event.target.value)} /></Field>
-        <Field label="Guardian email *" invalid={isInvalid('guardianEmail')}><input name="guardianEmail" type="email" value={draft.guardianEmail} aria-invalid={isInvalid('guardianEmail')} onChange={(event) => setField('guardianEmail', event.target.value)} /></Field>
-        <Field label="Guardian phone *" invalid={isInvalid('guardianPhone')}><input name="guardianPhone" value={draft.guardianPhone} aria-invalid={isInvalid('guardianPhone')} onChange={(event) => setField('guardianPhone', event.target.value)} /></Field>
-        <Field label="Emergency contact name *" invalid={isInvalid('emergencyName')}><input name="emergencyName" value={draft.emergencyName} aria-invalid={isInvalid('emergencyName')} onChange={(event) => setField('emergencyName', event.target.value)} /></Field>
-        <Field label="Relationship to child *" invalid={isInvalid('emergencyRelationship')}><input name="emergencyRelationship" value={draft.emergencyRelationship} aria-invalid={isInvalid('emergencyRelationship')} onChange={(event) => setField('emergencyRelationship', event.target.value)} /></Field>
-        <Field label="Emergency phone *" invalid={isInvalid('emergencyPhone')}><input name="emergencyPhone" value={draft.emergencyPhone} aria-invalid={isInvalid('emergencyPhone')} onChange={(event) => setField('emergencyPhone', event.target.value)} /></Field>
-        <Field label="Does the child need a racket?"><select value={draft.needsRacket ? 'yes' : 'no'} onChange={(event) => setField('needsRacket', event.target.value === 'yes')}><option value="yes">Yes</option><option value="no">No</option></select></Field>
-        <Field label="Will a parent remain onsite?"><select value={draft.parentOnsite ? 'yes' : 'no'} onChange={(event) => setField('parentOnsite', event.target.value === 'yes')}><option value="no">No</option><option value="yes">Yes</option></select></Field>
-        <label className="full-field">Anything coaches should know? <span>(optional; do not enter real medical information)</span><textarea value={draft.supportNotes} onChange={(event) => setField('supportNotes', event.target.value)} /></label>
-      </div></fieldset>}
-
-      {currentStep === 'dates' && <fieldset><legend>Choose the dates you want</legend><p className="registration-step-copy">Pick one or more available sessions. You can report an absence later from My Camps.</p><div className="registration-date-options">{availableSessions.map((session) => {
-        const selected = draft.selectedSessionIds.includes(session.id);
-        return <label className={'registration-date-option' + (selected ? ' is-selected' : '')} key={session.id}><input type="checkbox" checked={selected} onChange={(event) => toggleSession(session.id, event.target.checked)} /><span><strong>{formatDemoDate(session.date, { weekday: 'short', month: 'short', day: 'numeric' })}</strong><small>{session.startTime}–{session.endTime} · {session.location}</small></span><CalendarDays size={18} /></label>;
-      })}</div></fieldset>}
-
-      {currentStep === 'forms' && <fieldset><legend>Forms and permissions</legend><div className="registration-checks">
-        <label className="registration-check"><input type="checkbox" checked={draft.participationAccepted} onChange={(event) => setField('participationAccepted', event.target.checked)} /><span>Participation waiver *<br /><small>Required to take part in the camp.</small></span></label>
-        <label className="registration-check"><input type="checkbox" checked={draft.acknowledgmentAccepted} onChange={(event) => setField('acknowledgmentAccepted', event.target.checked)} /><span>Program acknowledgment *<br /><small>Confirms you reviewed the camp details.</small></span></label>
-        <label className="registration-check"><input type="checkbox" checked={draft.pickupAccepted} onChange={(event) => setField('pickupAccepted', event.target.checked)} /><span>Pickup policy acknowledgment *</span></label>
-        <label className="registration-check registration-optional-consent"><input aria-label="Photo and video permission (optional)" type="checkbox" checked={draft.photoConsent} onChange={(event) => setField('photoConsent', event.target.checked)} /><span>Photo &amp; video permission · optional<br /><small>Saying no will not affect registration.</small></span></label>
-      </div></fieldset>}
-
-      {currentStep === 'payment' && <section className="registration-payment-demo" aria-labelledby="registration-payment-heading"><p className="eyebrow">Fictional demo checkout</p><h2 id="registration-payment-heading">Payment</h2><strong>{'$' + program.price}</strong><p>This prototype records a successful demo payment. It never asks for or stores card information.</p><DemoNotice>Do not enter real payment information. No payment processor is connected.</DemoNotice></section>}
-
-      {currentStep === 'review' && <fieldset><legend>Review registration</legend><dl className="registration-review">
-        <div><dt>Player</dt><dd>{draft.childFirstName} {draft.childLastName}</dd></div><div><dt>Camp</dt><dd>{program.name}</dd></div>
-        <div className="registration-review-dates"><dt>Dates</dt><dd>{selectedSessions.map((session) => formatDemoDate(session.date, { month: 'short', day: 'numeric' })).join(' · ')}</dd></div>
-        <div><dt>Required forms</dt><dd>Accepted</dd></div><div><dt>Photo &amp; video</dt><dd>{draft.photoConsent ? 'Accepted' : 'Declined (optional)'}</dd></div>
-        <div><dt>Payment</dt><dd>{program.price === 0 ? 'Free' : '$' + program.price + ' · demo paid'}</dd></div>
-      </dl></fieldset>}
-
-      <div className="registration-actions">
-        {stepIndex > 0 ? <button className="button button-outline" type="button" onClick={previous}><ArrowLeft size={16} /> Back</button> : <span />}
-        {currentStep === 'review' ? <button className="button" type="button" onClick={submit} disabled={submitting}>{submitting ? 'Saving…' : 'Confirm registration'} <CheckCircle2 size={16} /></button> : <button className="button" type="button" onClick={next}>{currentStep === 'payment' ? 'Continue to review' : nextLabel} <ArrowRight size={16} /></button>}
-      </div>
-    </div>
-  </section>;
+  if (receipt) return <section className="registration-success shell"><span><CheckCircle2 size={30} /></span><p className="eyebrow">Registration received</p><h1>{receipt.registrationStatus === 'waitlisted' ? 'You’re on the waitlist' : 'Registration confirmed'}</h1><p>We received {draft.childFirstName}’s registration for {program.name}. Keep this reference: <strong>{receipt.publicReference}</strong>.</p><dl className="registration-review"><div><dt>Status</dt><dd>{receipt.registrationStatus.replaceAll('-', ' ')}</dd></div><div><dt>Payment</dt><dd>{receipt.paymentStatus === 'waived' ? 'Free program' : 'Staff will send payment instructions separately'}</dd></div><div className="registration-review-dates"><dt>Dates</dt><dd>{sessions.filter((session) => draft.selectedSessionIds.includes(session.id)).map((session) => dateLabel(session.date)).join(' · ')}</dd></div></dl><div><Link className="button" href="/events">Back to events <ArrowRight size={16} /></Link></div></section>;
+  const labels: Record<Step, string> = { player: 'Player', dates: 'Dates', forms: 'Forms', payment: 'Payment', review: 'Review' };
+  const nextLabel = steps[stepIndex + 1] === 'dates' ? 'Continue to dates' : steps[stepIndex + 1] === 'forms' ? 'Continue to forms' : steps[stepIndex + 1] === 'payment' ? 'Continue to payment' : 'Review registration';
+  return <section className="register-shell shell"><div className="register-header"><div><Link className="event-detail-back" href={`/events/${program.slug}`}><ArrowLeft size={15} /> {program.name}</Link><h1>Register for a program</h1><p>No account is required. Your submission goes directly to the Rookie Rackets staff inbox.</p></div><span className="register-program-pill">{program.priceCents === 0 ? 'Free program' : `$${(program.priceCents / 100).toFixed(2)}`}</span></div><div className="registration-card"><div className="registration-progress" aria-label="Registration progress">{steps.map((step, index) => <span className={index <= stepIndex ? 'active' : ''} key={step}>{String(index + 1).padStart(2, '0')} · {labels[step]}</span>)}</div>{error && <div className="field-error" role="alert">{error}</div>}
+    {current === 'player' && <fieldset><legend>Player and guardian information</legend><div className="registration-grid"><Field label="Child first name *" invalid={showErrors && invalid('childFirstName')}><input aria-label="Child first name" value={draft.childFirstName} onChange={(event) => update({ childFirstName: event.target.value })} /></Field><Field label="Child last name *" invalid={showErrors && invalid('childLastName')}><input aria-label="Child last name" value={draft.childLastName} onChange={(event) => update({ childLastName: event.target.value })} /></Field><Field label="Date of birth *" invalid={showErrors && invalid('dateOfBirth')}><input aria-label="Date of birth" type="date" value={draft.dateOfBirth} onChange={(event) => update({ dateOfBirth: event.target.value })} /></Field><Field label="Grade *" invalid={showErrors && invalid('grade')}><select aria-label="Grade" value={draft.grade} onChange={(event) => update({ grade: event.target.value })}><option value="">Select…</option>{['Kindergarten','1st Grade','2nd Grade','3rd Grade','4th Grade','5th Grade','6th Grade','7th Grade','8th Grade','9th Grade','10th Grade','11th Grade','12th Grade'].map((grade) => <option key={grade}>{grade}</option>)}</select></Field><Field label="Skill level *" invalid={showErrors && invalid('skillLevel')}><select aria-label="Skill level" value={draft.skillLevel} onChange={(event) => update({ skillLevel: event.target.value })}><option value="">Select…</option><option value="never-played">Never played</option><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></Field><Field label="Guardian first name *" invalid={showErrors && invalid('guardianFirstName')}><input aria-label="Guardian first name" value={draft.guardianFirstName} onChange={(event) => update({ guardianFirstName: event.target.value })} /></Field><Field label="Guardian last name *" invalid={showErrors && invalid('guardianLastName')}><input aria-label="Guardian last name" value={draft.guardianLastName} onChange={(event) => update({ guardianLastName: event.target.value })} /></Field><Field label="Guardian email *" invalid={showErrors && invalid('guardianEmail')}><input aria-label="Guardian email" type="email" value={draft.guardianEmail} onChange={(event) => update({ guardianEmail: event.target.value })} /></Field><Field label="Guardian phone *" invalid={showErrors && invalid('guardianPhone')}><input aria-label="Guardian phone" value={draft.guardianPhone} onChange={(event) => update({ guardianPhone: event.target.value })} /></Field><Field label="Emergency contact name *" invalid={showErrors && invalid('emergencyName')}><input aria-label="Emergency contact name" value={draft.emergencyName} onChange={(event) => update({ emergencyName: event.target.value })} /></Field><Field label="Relationship to child *" invalid={showErrors && invalid('emergencyRelationship')}><input aria-label="Relationship to child" value={draft.emergencyRelationship} onChange={(event) => update({ emergencyRelationship: event.target.value })} /></Field><Field label="Emergency phone *" invalid={showErrors && invalid('emergencyPhone')}><input aria-label="Emergency phone" value={draft.emergencyPhone} onChange={(event) => update({ emergencyPhone: event.target.value })} /></Field><Field label="Does the child need a racket?"><select value={draft.needsRacket ? 'yes' : 'no'} onChange={(event) => update({ needsRacket: event.target.value === 'yes' })}><option value="yes">Yes</option><option value="no">No</option></select></Field><Field label="Will a parent remain onsite?"><select value={draft.parentOnsite ? 'yes' : 'no'} onChange={(event) => update({ parentOnsite: event.target.value === 'yes' })}><option value="no">No</option><option value="yes">Yes</option></select></Field><label className="full-field">Anything coaches should know? <span>(optional)</span><textarea value={draft.supportNotes} onChange={(event) => update({ supportNotes: event.target.value })} /></label></div></fieldset>}
+    {current === 'dates' && <fieldset><legend>Choose program dates</legend><p className="registration-step-copy">Choose one or more scheduled dates.</p><div className="registration-date-options">{sessions.map((session) => { const selected = draft.selectedSessionIds.includes(session.id); return <label className={`registration-date-option${selected ? ' is-selected' : ''}`} key={session.id}><input type="checkbox" aria-label={`${dateLabel(session.date, true)} session`} checked={selected} onChange={(event) => toggleSession(session.id, event.target.checked)} /><span><strong>{dateLabel(session.date, true)}</strong><small>{timeLabel(session.startTime)}–{timeLabel(session.endTime)} · {session.location}</small></span><CalendarDays size={18} /></label>; })}</div></fieldset>}
+    {current === 'forms' && <fieldset><legend>Forms and permissions</legend><div className="registration-checks"><label className="registration-check"><input aria-label="Participation waiver" type="checkbox" checked={draft.participationAccepted} onChange={(event) => update({ participationAccepted: event.target.checked })} /><span>Participation waiver *<br/><small>Required to participate.</small></span></label><label className="registration-check"><input aria-label="Program acknowledgment" type="checkbox" checked={draft.acknowledgmentAccepted} onChange={(event) => update({ acknowledgmentAccepted: event.target.checked })} /><span>Program acknowledgment *</span></label><label className="registration-check"><input aria-label="Pickup policy" type="checkbox" checked={draft.pickupAccepted} onChange={(event) => update({ pickupAccepted: event.target.checked })} /><span>Pickup policy acknowledgment *</span></label><label className="registration-check registration-optional-consent"><input aria-label="Photo and video permission (optional)" type="checkbox" checked={draft.photoConsent} onChange={(event) => update({ photoConsent: event.target.checked })} /><span>Photo &amp; video permission · optional<br/><small>Saying no will not affect registration.</small></span></label></div></fieldset>}
+    {current === 'payment' && <section className="registration-payment-demo" aria-labelledby="registration-payment-heading"><p className="eyebrow">Payment instructions</p><h2 id="registration-payment-heading">Payment</h2><strong>{`$${(program.priceCents / 100).toFixed(2)}`}</strong><p>No card information is collected here. Staff will contact you with the approved payment method after registration.</p></section>}
+    {current === 'review' && <fieldset><legend>Review registration</legend><dl className="registration-review"><div><dt>Player</dt><dd>{draft.childFirstName} {draft.childLastName}</dd></div><div><dt>Program</dt><dd>{program.name}</dd></div><div className="registration-review-dates"><dt>Dates</dt><dd>{sessions.filter((session) => draft.selectedSessionIds.includes(session.id)).map((session) => dateLabel(session.date)).join(' · ')}</dd></div><div><dt>Required forms</dt><dd>Accepted</dd></div><div><dt>Photo &amp; video</dt><dd>{draft.photoConsent ? 'Accepted' : 'Declined (optional)'}</dd></div><div><dt>Payment</dt><dd>{program.priceCents === 0 ? 'Free' : 'Instructions sent separately'}</dd></div></dl></fieldset>}
+    <div className="registration-actions">{stepIndex > 0 ? <button className="button button-outline" type="button" onClick={previous}><ArrowLeft size={16}/> Back</button> : <span/>}{current === 'review' ? <button className="button" type="button" onClick={() => void submit()} disabled={submitting}>{submitting ? 'Submitting…' : 'Submit registration'} <CheckCircle2 size={16}/></button> : <button className="button" type="button" onClick={next}>{current === 'payment' ? 'Continue to review' : nextLabel} <ArrowRight size={16}/></button>}</div>
+  </div></section>;
 }
-

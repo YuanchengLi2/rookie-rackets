@@ -1,87 +1,19 @@
 'use client';
 
-import Link from 'next/link';
-import { CalendarDays, ChevronRight, Clock3, UsersRound } from 'lucide-react';
+import { CalendarDays, Clock3, Plus, UsersRound } from 'lucide-react';
 import { useState } from 'react';
-import { formatDemoDate, getCoachAssignments, getProgram } from '../../lib/demo/selectors';
-import { useDemo } from '../demo/demo-provider';
+import type { Coach, CoachDraft } from '../../lib/data/types';
+import { useOperations } from '../data/operations-provider';
 import { DemoDrawer } from '../demo/overlay';
 import { EmptyState, StatusBadge } from '../demo/demo-ui';
 
+const blank = (): CoachDraft => ({ name: '', email: '', role: 'coach', active: true, experience: '', availability: 'informational', volunteerMinutes: 0 });
 export function CoachesView() {
-  const { state } = useDemo();
-  const [selected, setSelected] = useState<string | null>(null);
-  const selectedCoach = state.coaches.find((coach) => coach.id === selected);
-  const selectedSessions = selectedCoach ? getCoachAssignments(state, selectedCoach.id) : [];
-  const selectedProgramIds = [...new Set(selectedSessions.map((session) => session.programId))];
-  const selectedPrograms = selectedProgramIds.map((id) => getProgram(state, id)).filter(Boolean);
-
-  return (
-    <div className="staff-page">
-      <div className="staff-page-heading">
-        <h1>Coaches</h1>
-        <div className="staff-summary-pill"><UsersRound size={16} /> {state.coaches.filter((coach) => coach.active).length} active coaches</div>
-      </div>
-
-      <div className="coach-grid">
-        {state.coaches.map((coach) => {
-          const assignments = getCoachAssignments(state, coach.id);
-          const programCount = new Set(assignments.map((session) => session.programId)).size;
-          return (
-            <button className="coach-card" type="button" onClick={() => setSelected(coach.id)} key={coach.id} aria-label={`View ${coach.name}`}>
-              <div className="coach-card-top">
-                <span className="coach-avatar">{coach.name.slice(0, 2).toUpperCase()}</span>
-                <span><b>{coach.name}</b><small>{coach.role.replaceAll('-', ' ')}</small></span>
-                <ChevronRight size={17} />
-              </div>
-              <p>{coach.experience}</p>
-              <div className="coach-card-stats">
-                <span><strong>{coach.volunteerHours}</strong><small>volunteer hours</small></span>
-                <span><strong>{programCount}</strong><small>program{programCount === 1 ? '' : 's'}</small></span>
-                <span><strong>{assignments.length}</strong><small>sessions</small></span>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      <DemoDrawer open={Boolean(selectedCoach)} title={selectedCoach ? `${selectedCoach.name} · coach profile` : 'Coach profile'} onClose={() => setSelected(null)}>
-        {selectedCoach && (
-          <div className="drawer-content coach-profile-drawer">
-            <div className="drawer-coach-head">
-              <span className="coach-avatar coach-avatar-large">{selectedCoach.name.slice(0, 2).toUpperCase()}</span>
-              <div><h3>{selectedCoach.name}</h3><p>{selectedCoach.role.replaceAll('-', ' ')} · {selectedCoach.volunteerHours} volunteer hours</p></div>
-            </div>
-            <div className="coach-profile-summary">
-              <span><Clock3 size={17} /><strong>{selectedCoach.volunteerHours}</strong><small>Total hours</small></span>
-              <span><UsersRound size={17} /><strong>{selectedPrograms.length}</strong><small>Programs</small></span>
-              <span><CalendarDays size={17} /><strong>{selectedSessions.length}</strong><small>Upcoming sessions</small></span>
-            </div>
-
-            <section className="drawer-section">
-              <div className="drawer-section-heading"><h3>Programs</h3><StatusBadge status={selectedCoach.active ? 'active' : 'inactive'} /></div>
-              {selectedPrograms.length ? selectedPrograms.map((program) => program && (
-                <Link className="coach-program-row" href={`/staff/programs/${program.id}`} key={program.id}>
-                  <span><b>{program.name}</b><small>{program.venue}</small></span><ChevronRight size={16} />
-                </Link>
-              )) : <EmptyState title="No programs yet" description="This coach does not have a current program assignment." />}
-            </section>
-
-            <section className="drawer-section">
-              <div className="drawer-section-heading"><h3>Upcoming sessions</h3></div>
-              {selectedSessions.length ? selectedSessions.map((session) => {
-                const program = getProgram(state, session.programId);
-                return (
-                  <div className="assignment-row" key={session.id}>
-                    <div><b>{program?.name}</b><small>{formatDemoDate(session.date, { weekday: 'short', month: 'short', day: 'numeric' })} · {session.startTime}–{session.endTime}</small></div>
-                    <StatusBadge status={session.status} />
-                  </div>
-                );
-              }) : <EmptyState title="No upcoming sessions" description="There are no scheduled sessions for this coach." />}
-            </section>
-          </div>
-        )}
-      </DemoDrawer>
-    </div>
-  );
+  const { state, mutate, isSaving } = useOperations(); const [selectedId, setSelectedId] = useState<string | null>(null); const [creating, setCreating] = useState(false); const selected = state.coaches.find((coach) => coach.id === selectedId); const [draft, setDraft] = useState<CoachDraft>(blank());
+  const open = (coach?: Coach) => { if (coach) { setSelectedId(coach.id); setDraft({ name: coach.name, email: coach.email, role: coach.role, active: coach.active, experience: coach.experience, availability: coach.availability, volunteerMinutes: coach.volunteerMinutes }); } else { setCreating(true); setDraft(blank()); } };
+  const close = () => { setCreating(false); setSelectedId(null); };
+  const save = async (event: React.FormEvent) => { event.preventDefault(); if (!draft.name.trim() || !draft.email.trim()) return; try { if (selected) await mutate(`coach:${selected.id}`, (repository) => repository.updateCoach(selected.id, draft), 'Coach saved.'); else await mutate('coach:create', (repository) => repository.createCoach(draft), 'Coach added.'); close(); } catch { /* Keep values for retry. */ } };
+  const set = <K extends keyof CoachDraft>(key: K, value: CoachDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
+  const assignments = selected ? state.assignments.filter((assignment) => assignment.coachId === selected.id).map((assignment) => state.sessions.find((session) => session.id === assignment.sessionId)).filter(Boolean) : [];
+  return <div className="staff-page"><div className="staff-page-heading"><div><p className="staff-kicker">People and availability</p><h1>Coaches</h1></div><div className="staff-heading-actions"><span className="staff-summary-pill"><UsersRound size={16}/> {state.coaches.filter((coach) => coach.active).length} active</span><button className="staff-button" type="button" onClick={() => open()}><Plus size={16}/> Add coach</button></div></div><div className="coach-grid">{state.coaches.filter((coach) => !coach.archivedAt).map((coach) => { const coachAssignments = state.assignments.filter((item) => item.coachId === coach.id); return <button className="coach-card" type="button" onClick={() => open(coach)} key={coach.id}><div className="coach-card-top"><span className="coach-avatar">{coach.name.slice(0,2).toUpperCase()}</span><span><b>{coach.name}</b><small>{coach.role.replaceAll('-', ' ')}</small></span><StatusBadge status={coach.active ? 'active' : 'inactive'}/></div><p>{coach.experience || 'No experience notes yet.'}</p><div className="coach-card-stats"><span><strong>{(coach.volunteerMinutes / 60).toFixed(1)}</strong><small>volunteer hours</small></span><span><strong>{coachAssignments.length}</strong><small>sessions</small></span></div></button>; })}</div>{!state.coaches.length && <EmptyState title="No coaches yet" description="Add the first coach or volunteer." />}<DemoDrawer open={creating || Boolean(selected)} title={creating ? 'Add coach' : selected?.name ?? 'Coach'} onClose={close}><form className="staff-form" onSubmit={(event) => void save(event)}><div className="staff-form-grid"><label>Name *<input value={draft.name} onChange={(event) => set('name', event.target.value)}/></label><label>Email *<input type="email" value={draft.email} onChange={(event) => set('email', event.target.value)}/></label><label>Role<select value={draft.role} onChange={(event) => set('role', event.target.value as CoachDraft['role'])}><option value="program-lead">Program lead</option><option value="coach">Coach</option><option value="assistant">Assistant</option><option value="volunteer">Volunteer</option></select></label><label>Availability<select value={draft.availability} onChange={(event) => set('availability', event.target.value as CoachDraft['availability'])}><option value="available">Available</option><option value="tentative">Tentative</option><option value="unavailable">Unavailable</option><option value="informational">Informational</option></select></label><label>Volunteer hours<input type="number" min="0" step="0.25" value={draft.volunteerMinutes / 60} onChange={(event) => set('volunteerMinutes', Math.round(Number(event.target.value) * 60))}/></label><label>Active<select value={draft.active ? 'yes' : 'no'} onChange={(event) => set('active', event.target.value === 'yes')}><option value="yes">Active</option><option value="no">Inactive</option></select></label><label className="full-field">Experience and notes<textarea value={draft.experience} onChange={(event) => set('experience', event.target.value)}/></label></div>{selected && <section className="drawer-section"><h3>Assigned sessions</h3>{assignments.length ? assignments.map((session) => session && <div className="assignment-row" key={session.id}><div><b>{state.programs.find((program) => program.id === session.programId)?.name}</b><small><CalendarDays size={13}/> {session.date} · <Clock3 size={13}/> {session.startTime}</small></div></div>) : <p>No current assignments.</p>}</section>}<div className="modal-actions"><button className="staff-button staff-button-outline" type="button" onClick={close}>Cancel</button><button className="staff-button" type="submit" disabled={isSaving(selected ? `coach:${selected.id}` : 'coach:create')}>{isSaving(selected ? `coach:${selected.id}` : 'coach:create') ? 'Saving…' : 'Save coach'}</button></div></form></DemoDrawer></div>;
 }

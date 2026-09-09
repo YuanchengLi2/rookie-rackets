@@ -8,7 +8,6 @@ import {
   ClipboardCheck,
   Flag,
   MessageSquare,
-  MoreHorizontal,
   Plus,
   Trash2,
   UsersRound,
@@ -24,6 +23,8 @@ import {
 import type { AttendanceStatus, CoachSlot, CurriculumActivityKind, DemoState, SessionCurriculum, SessionRecord } from '../../lib/demo/types';
 import { useDemo } from '../demo/demo-provider';
 import { EmptyState, StatusBadge } from '../demo/demo-ui';
+import { DemoModal } from '../demo/overlay';
+import { useOperations } from '../data/operations-provider';
 
 const tabs = [
   'Overview',
@@ -53,12 +54,6 @@ export function ProgramDetail({ programId, initialTab }: { programId: string; in
   const [tab, setTab] = useState<(typeof tabs)[number]>(startingTab);
   const [message, setMessage] = useState('');
   const [sent, setSent] = useState(false);
-  const [checks, setChecks] = useState<Record<string, boolean>>({
-    court: false,
-    rackets: true,
-    signIn: false,
-    reminder: false,
-  });
 
   if (!program) {
     return (
@@ -82,7 +77,7 @@ export function ProgramDetail({ programId, initialTab }: { programId: string; in
   const logMessage = () => {
     const trimmed = message.trim();
     if (!trimmed) return;
-    logActivity(`Simulated program message recorded for ${program.name}: ${trimmed}`, 'program');
+    logActivity(`Communication note for ${program.name}: ${trimmed}`, 'program');
     setSent(true);
     setMessage('');
   };
@@ -151,7 +146,7 @@ export function ProgramDetail({ programId, initialTab }: { programId: string; in
       </label>
       <section className="staff-tab-panel">
         {tab === 'Overview' && <OverviewTab program={program} leadName={lead?.name} />}
-        {tab === 'Sessions' && <SessionsTab sessions={sessions} updateSessionStatus={updateSessionStatus} onOpenRoster={() => setTab('Roster')} />}
+        {tab === 'Sessions' && <SessionsTab programId={program.id} sessions={sessions} updateSessionStatus={updateSessionStatus} onOpenRoster={() => setTab('Roster')} />}
         {tab === 'Roster' && (
           <RosterTab
             state={state}
@@ -164,7 +159,7 @@ export function ProgramDetail({ programId, initialTab }: { programId: string; in
           <CoachTab programId={program.id} sessions={sessions} state={state} assignCoach={assignCoach} />
         )}
         {tab === 'Curriculum' && <CurriculumTab sessions={sessions} saveCurriculum={updateSessionCurriculum} />}
-        {tab === 'Logistics' && <LogisticsTab checks={checks} setChecks={setChecks} />}
+        {tab === 'Logistics' && <LogisticsTab programId={program.id} state={state} />}
         {tab === 'Communications' && (
           <CommunicationsTab
             message={message}
@@ -221,15 +216,19 @@ function OverviewTab({ program, leadName }: { program: NonNullable<ReturnType<ty
   );
 }
 
-function SessionsTab({ sessions, updateSessionStatus, onOpenRoster }: { sessions: SessionRecord[]; updateSessionStatus: (sessionId: string, status: SessionRecord['status']) => void; onOpenRoster: () => void }) {
+function SessionsTab({ programId, sessions, updateSessionStatus, onOpenRoster }: { programId: string; sessions: SessionRecord[]; updateSessionStatus: (sessionId: string, status: SessionRecord['status']) => void; onOpenRoster: () => void }) {
+  const operations = useOperations();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState({ date: new Date().toISOString().slice(0, 10), startTime: '16:00', endTime: '17:00', arrivalTime: '15:40', location: '', notes: '' });
+  const save = async (event: React.FormEvent) => { event.preventDefault(); if (!draft.location.trim()) return; try { await operations.mutate(`session:${programId}:create`, (repository) => repository.createSession({ programId, ...draft, leadCoachId: null, curriculum: { objective: '', activities: [], coachNotes: '', updatedAt: null }, status: 'scheduled' }), 'Session added.'); setOpen(false); } catch { /* Keep the form open for retry. */ } };
   return (
     <div>
       <div className="tab-heading">
         <div>
           <h2>Sessions</h2>
-          <p>Attendance and session status are local demo records.</p>
+          <p>Dates, coach coverage, attendance, and status share the live workspace.</p>
         </div>
-        <StatusBadge status={`${sessions.length} sessions`} />
+        <div className="staff-heading-actions"><StatusBadge status={`${sessions.length} sessions`} /><button className="staff-button" type="button" onClick={() => setOpen(true)}><Plus size={15}/> Add session</button></div>
       </div>
       <div className="session-table">
         {sessions.length ? (
@@ -254,9 +253,10 @@ function SessionsTab({ sessions, updateSessionStatus, onOpenRoster }: { sessions
             </div>
           ))
         ) : (
-          <EmptyState title="No sessions yet" description="Add sessions to this program in the local fixture." />
+          <EmptyState title="No sessions yet" description="Add the first scheduled date for this program." />
         )}
       </div>
+      <DemoModal open={open} title="Add session" onClose={() => setOpen(false)}><form className="staff-form" onSubmit={(event) => void save(event)}><div className="staff-form-grid"><label>Date<input type="date" required value={draft.date} onChange={(event) => setDraft((value) => ({ ...value, date: event.target.value }))}/></label><label>Location<input required value={draft.location} onChange={(event) => setDraft((value) => ({ ...value, location: event.target.value }))}/></label><label>Start time<input type="time" required value={draft.startTime} onChange={(event) => setDraft((value) => ({ ...value, startTime: event.target.value }))}/></label><label>End time<input type="time" required value={draft.endTime} onChange={(event) => setDraft((value) => ({ ...value, endTime: event.target.value }))}/></label><label>Coach arrival<input type="time" required value={draft.arrivalTime} onChange={(event) => setDraft((value) => ({ ...value, arrivalTime: event.target.value }))}/></label><label className="full-field">Notes<textarea value={draft.notes} onChange={(event) => setDraft((value) => ({ ...value, notes: event.target.value }))}/></label></div><div className="modal-actions"><button className="staff-button staff-button-outline" type="button" onClick={() => setOpen(false)}>Cancel</button><button className="staff-button" type="submit" disabled={operations.isSaving(`session:${programId}:create`)}>{operations.isSaving(`session:${programId}:create`) ? 'Saving…' : 'Add session'}</button></div></form></DemoModal>
     </div>
   );
 }
@@ -467,12 +467,13 @@ function CurriculumSessionEditor({ sessions, selectedSession, setSessionId, save
       <label className="curriculum-notes">Coach notes
         <textarea rows={3} value={draft.coachNotes} onChange={(event) => setDraft((current) => ({ ...current, coachNotes: event.target.value }))} placeholder="Equipment, grouping, accessibility, or handoff notes" />
       </label>
-      <div className="curriculum-save-bar"><span>This updates the shared program record on this device.</span><button className="staff-button" type="button" disabled={!draft.objective.trim() || !draft.activities.length} onClick={() => saveCurriculum(selectedSession.id, draft)}>Save curriculum</button></div>
+      <div className="curriculum-save-bar"><span>This updates the shared session curriculum.</span><button className="staff-button" type="button" disabled={!draft.objective.trim() || !draft.activities.length} onClick={() => saveCurriculum(selectedSession.id, draft)}>Save curriculum</button></div>
     </div>
   );
 }
 
-function LogisticsTab({ checks, setChecks }: { checks: Record<string, boolean>; setChecks: React.Dispatch<React.SetStateAction<Record<string, boolean>>> }) {
+function LogisticsTab({ programId, state }: { programId: string; state: DemoState }) {
+  const operations = useOperations();
   const items = [
     ['court', 'Confirm court access'],
     ['rackets', 'Pack loaner rackets'],
@@ -484,19 +485,18 @@ function LogisticsTab({ checks, setChecks }: { checks: Record<string, boolean>; 
       <div className="tab-heading">
         <div>
           <h2>Logistics checklist</h2>
-          <p>Checklist toggles are saved for this open screen only in the demo.</p>
+          <p>Each checklist item is a persistent program task with an owner and due date in Projects.</p>
         </div>
-        <MoreHorizontal size={18} />
       </div>
       <div className="logistics-checks">
         {items.map(([id, label]) => (
           <label key={id}>
             <input
               type="checkbox"
-              checked={Boolean(checks[id])}
-              onChange={(event) => setChecks((current) => ({ ...current, [id]: event.target.checked }))}
+              checked={state.tasks.some((task) => task.programId === programId && task.title === label && task.status === 'done')}
+              onChange={(event) => { const task = state.tasks.find((item) => item.programId === programId && item.title === label); const status = event.target.checked ? 'done' : 'not-started'; if (task) void operations.mutate(`task:${task.id}`, (repository) => repository.updateTask(task.id, { status }), 'Logistics task saved.').catch(() => undefined); else void operations.mutate(`task:${programId}:${id}`, (repository) => repository.createTask({ title: label, ownerId: operations.staff?.id ?? null, dueDate: new Date().toISOString().slice(0, 10), status, priority: 'medium', projectId: null, programId, organizationId: null, notes: '' }), 'Logistics task added.').catch(() => undefined); }}
             />
-            <span>{checks[id] ? <CheckCircle2 size={17} /> : <Check size={17} />}</span>
+            <span>{state.tasks.some((task) => task.programId === programId && task.title === label && task.status === 'done') ? <CheckCircle2 size={17} /> : <Check size={17} />}</span>
             <b>{label}</b>
           </label>
         ))}
@@ -521,12 +521,12 @@ function CommunicationsTab({
       <div className="tab-heading">
         <div>
           <h2>Communications</h2>
-          <p>Sending is simulated; no email or SMS is delivered.</p>
+          <p>Save an internal communication note to the program activity history.</p>
         </div>
         <MessageSquare size={18} />
       </div>
       <label className="staff-message-box" htmlFor="demo-program-message">
-        Demo message
+        Internal note
         <textarea
           id="demo-program-message"
           value={message}
@@ -536,7 +536,7 @@ function CommunicationsTab({
       </label>
       <div className="modal-actions">
         <button className="staff-button" type="button" onClick={logMessage}>
-          Simulate send
+          Save note
         </button>
         {sent && (
           <span className="saved-message">
@@ -555,7 +555,7 @@ function FinanceTab({ programId, state }: { programId: string; state: DemoState 
       <div className="tab-heading">
         <div>
           <h2>Program finance</h2>
-          <p>Local ledger records only; this demo does not process payments.</p>
+          <p>Entries from the shared finance ledger linked to this program.</p>
         </div>
       </div>
       {entries.length ? (

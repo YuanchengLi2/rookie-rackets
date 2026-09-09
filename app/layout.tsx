@@ -7,7 +7,6 @@ import './portal/portal.css';
 import './staff/staff.css';
 import './demo-polish.css';
 import { RevealMotion } from '../components/motion';
-import { DemoProvider } from '../components/demo/demo-provider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -42,10 +41,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} ${fredoka.variable} antialiased`}>
-        <DemoProvider>
-          <RevealMotion />
-          {children}
-        </DemoProvider>
+        <RevealMotion />
+        {children}
       </body>
     </html>
   );

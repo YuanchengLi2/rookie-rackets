@@ -5,6 +5,8 @@ import { demoReducer } from '../../lib/demo/reducer';
 import { createSeedState } from '../../lib/demo/seed';
 import { getProgramCapacity } from '../../lib/demo/selectors';
 import { loadDemoState, saveDemoState } from '../../lib/demo/storage';
+import { useOperations } from '../data/operations-provider';
+import { createBrowserSupabaseClient } from '../../lib/supabase/browser';
 import type {
   CoachSlot,
   ConsentType,
@@ -62,7 +64,7 @@ function makeId(prefix: string): string {
   return `${prefix}-${randomUuid}`;
 }
 
-export function DemoProvider({ children }: { children: React.ReactNode }) {
+function LocalDemoProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(demoReducer, undefined, createSeedState);
   const [hydrated, setHydrated] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -147,6 +149,75 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<DemoContextValue>(() => ({ state, hydrated, toast, dismissToast: () => setToast(null), signInAs, signOut, resetDemoData, registerForProgram, reportAbsence, acceptWaitlistOffer, updateFamilyProfile, updateConsent, createProgram, updateProgram, updateSessionStatus, updateSessionCurriculum, updateProject, assignCoach, setAttendance, updateRegistrationStatus, updateOrganization, addOrganizationInteraction, addTask, updateTask, addFinanceEntry, logActivity, getCurrentFamily }), [state, hydrated, toast, signInAs, signOut, resetDemoData, registerForProgram, reportAbsence, acceptWaitlistOffer, updateFamilyProfile, updateConsent, createProgram, updateProgram, updateSessionStatus, updateSessionCurriculum, updateProject, assignCoach, setAttendance, updateRegistrationStatus, updateOrganization, addOrganizationInteraction, addTask, updateTask, addFinanceEntry, logActivity, getCurrentFamily]);
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
+}
+
+function toLegacyState(state: import('../../lib/data/types').OperationsState): DemoState {
+  const assignmentsBySession = new Map<string, string[]>();
+  for (const assignment of state.assignments) assignmentsBySession.set(assignment.sessionId, [...(assignmentsBySession.get(assignment.sessionId) ?? []), assignment.coachId]);
+  return {
+    version: 2,
+    demoDate: new Date().toISOString().slice(0, 10),
+    session: { role: 'staff', profileId: state.staffProfiles[0]?.id ?? '' },
+    familyProfiles: [],
+    staffProfiles: state.staffProfiles.map(({ id, name, role, email, initials }) => ({ id, name, role, email, initials })),
+    programs: state.programs.map((program) => ({ ...program, organizationId: program.organizationId ?? '', leadCoachId: program.leadCoachId ?? '', price: program.priceCents / 100 })),
+    sessions: state.sessions.map((session) => ({ ...session, coachIds: assignmentsBySession.get(session.id) ?? [], curriculumFileId: state.files.find((file) => file.programId === session.programId && file.category === 'curriculum')?.id ?? '' })),
+    coaches: state.coaches.map((coach) => ({ ...coach, volunteerHours: Math.round((coach.volunteerMinutes / 60) * 100) / 100, assignmentIds: state.assignments.filter((assignment) => assignment.coachId === coach.id).map((assignment) => assignment.id) })),
+    assignments: state.assignments.map(({ id, sessionId, coachId, slot, accepted }) => ({ id, sessionId, coachId, slot, accepted })),
+    registrations: state.registrations.map((registration) => ({ ...registration, familyId: '', createdAt: registration.submittedAt })),
+    consents: state.consents.map((consent) => ({ ...consent, acceptedAt: consent.respondedAt })),
+    payments: state.payments.map((payment) => ({ id: payment.id, registrationId: payment.registrationId, programId: state.registrations.find((registration) => registration.id === payment.registrationId)?.programId ?? '', amount: payment.amountCents / 100, status: payment.status, paymentDate: payment.receivedAt, receiptNumber: payment.externalReference, note: payment.note, receiptFileId: payment.receiptFileId })),
+    attendance: state.attendance.map((record) => ({ id: record.id, registrationId: record.registrationId, sessionId: record.sessionId, status: record.status, note: record.note, updatedAt: record.updatedAt })),
+    organizations: state.organizations.map((organization) => ({ ...organization, leadStaffId: organization.leadStaffId ?? '', supportStaff: organization.supportStaffIds, programIds: state.programs.filter((program) => program.organizationId === organization.id).map((program) => program.id), projectIds: state.projects.filter((project) => project.organizationId === organization.id).map((project) => project.id), driveFileIds: state.files.filter((file) => file.organizationId === organization.id).map((file) => file.id) })),
+    interactions: state.interactions.map((interaction) => ({ id: interaction.id, organizationId: interaction.organizationId, date: interaction.occurredOn, ownerId: interaction.ownerId ?? '', kind: interaction.kind, outcome: interaction.outcome, notes: interaction.notes, nextAction: interaction.nextAction })),
+    projects: state.projects.map((project) => ({ ...project, ownerId: project.ownerId ?? '', driveFileIds: state.files.filter((file) => file.projectId === project.id).map((file) => file.id) })),
+    tasks: state.tasks.map((task) => ({ ...task, ownerId: task.ownerId ?? '' })),
+    financeEntries: state.financeEntries.map((entry) => ({ ...entry, amount: entry.amountCents / 100 })),
+    files: state.files.map((file) => ({ id: file.id, name: file.name, kind: file.category === 'curriculum' ? 'document' : file.category, description: file.mediaType, updatedAt: file.createdAt })),
+    activity: state.activity.map((item) => ({ id: item.id, date: item.createdAt, message: item.summary, kind: (['registration', 'program', 'coach', 'organization', 'project', 'finance'].includes(item.entityType) ? item.entityType : 'system') as import('../../lib/demo/types').ActivityRecord['kind'] })),
+  };
+}
+
+function PersistentDemoProvider({ children }: { children: React.ReactNode }) {
+  const operations = useOperations();
+  const state = useMemo(() => toLegacyState(operations.state), [operations.state]);
+  const run = useCallback((key: string, operation: (repository: import('../../lib/data/repository').OperationsRepository) => Promise<unknown>, message: string) => {
+    void operations.mutate(key, operation, message).catch(() => undefined);
+  }, [operations]);
+  const value = useMemo<DemoContextValue>(() => ({
+    state,
+    hydrated: operations.status !== 'loading',
+    toast: operations.toast,
+    dismissToast: operations.dismissToast,
+    signInAs: () => undefined,
+    signOut: () => { void createBrowserSupabaseClient().auth.signOut(); },
+    resetDemoData: () => operations.refresh(),
+    registerForProgram: () => '',
+    reportAbsence: (registrationId, sessionId, note) => run(`attendance:${registrationId}:${sessionId}`, (repository) => repository.upsertAttendance(registrationId, sessionId, 'parent-reported-absence', note), 'Absence saved.'),
+    acceptWaitlistOffer: (registrationId) => run(`registration:${registrationId}`, (repository) => repository.updateRegistration(registrationId, { registrationStatus: 'confirmed' }), 'Registration confirmed.'),
+    updateFamilyProfile: () => undefined,
+    updateConsent: (registrationId, consentType, accepted) => run(`consent:${registrationId}:${consentType}`, (repository) => repository.upsertConsent(registrationId, { type: consentType, accepted, version: operations.state.settings?.participationWaiverVersion ?? '2026.1', respondedAt: new Date().toISOString() }), 'Form response saved.'),
+    createProgram: (draft) => { run('program:create', (repository) => repository.createProgram({ slug: `${draft.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${crypto.randomUUID().slice(0, 5)}`, name: draft.name, organizationId: draft.organizationId || null, type: draft.type, description: draft.description, venue: draft.venue, skillLevel: 'mixed', eligibility: '', capacity: draft.capacity, leadCoachId: draft.leadCoachId || null, status: draft.status, visibility: draft.visibility, priceCents: Math.round(draft.price * 100), registrationDeadline: draft.registrationDeadline, whatToBring: [], equipmentProvided: true, image: '', contact: operations.state.settings?.contactEmail ?? '' }), 'Program created.'); return ''; },
+    updateProgram: (programId, patch) => run(`program:${programId}`, (repository) => repository.updateProgram(programId, patch), 'Program saved.'),
+    updateSessionStatus: (sessionId, status) => run(`session:${sessionId}`, (repository) => repository.updateSession(sessionId, { status }), 'Session status saved.'),
+    updateSessionCurriculum: (sessionId, curriculum) => run(`session:${sessionId}:curriculum`, (repository) => repository.updateSession(sessionId, { curriculum }), 'Curriculum saved.'),
+    updateProject: (projectId, patch) => run(`project:${projectId}`, (repository) => repository.updateProject(projectId, patch), 'Project saved.'),
+    assignCoach: (sessionId, slot, coachId) => run(`assignment:${sessionId}:${slot}`, (repository) => repository.assignCoach(sessionId, slot, coachId), 'Coach assignment saved.'),
+    setAttendance: (registrationId, sessionId, status, note) => run(`attendance:${registrationId}:${sessionId}`, (repository) => repository.upsertAttendance(registrationId, sessionId, status, note), 'Attendance saved.'),
+    updateRegistrationStatus: (registrationId, registrationStatus) => run(`registration:${registrationId}`, (repository) => repository.updateRegistration(registrationId, { registrationStatus }), 'Registration saved.'),
+    updateOrganization: (organizationId, patch) => run(`organization:${organizationId}`, (repository) => repository.updateOrganization(organizationId, patch), 'Organization saved.'),
+    addOrganizationInteraction: (organizationId, draft) => run(`organization:${organizationId}:interaction`, (repository) => repository.addOrganizationInteraction({ organizationId, occurredOn: new Date().toISOString().slice(0, 10), ownerId: operations.staff?.id ?? null, ...draft }), 'Partner update added.'),
+    addTask: (draft) => { run('task:create', (repository) => repository.createTask({ title: draft.title, ownerId: draft.ownerId || null, dueDate: draft.dueDate, status: draft.status, priority: draft.priority, projectId: draft.projectId ?? null, programId: draft.programId ?? null, organizationId: draft.organizationId ?? null, notes: draft.notes ?? '' }), 'Task added.'); return ''; },
+    updateTask: (taskId, patch) => run(`task:${taskId}`, (repository) => repository.updateTask(taskId, patch), 'Task saved.'),
+    addFinanceEntry: (draft) => { run('finance:create', (repository) => repository.createFinanceEntry({ kind: draft.kind, programId: draft.programId ?? null, projectId: draft.projectId ?? null, date: draft.date, description: draft.description, category: draft.category, amountCents: Math.round(draft.amount * 100), paidBy: draft.paidBy, reimbursementStatus: 'not-applicable' }), 'Finance entry added.'); return ''; },
+    logActivity: (message, kind = 'system') => run('activity:create', (repository) => repository.logActivity(`${kind}.note`, kind, null, message), 'Activity recorded.'),
+    getCurrentFamily: () => undefined,
+  }), [operations, run, state]);
+  return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
+}
+
+export function DemoProvider({ children, persistent = false }: { children: React.ReactNode; persistent?: boolean }) {
+  return persistent ? <PersistentDemoProvider>{children}</PersistentDemoProvider> : <LocalDemoProvider>{children}</LocalDemoProvider>;
 }
 
 export function useDemo(): DemoContextValue {

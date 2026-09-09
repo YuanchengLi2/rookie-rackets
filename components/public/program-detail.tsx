@@ -1,30 +1,14 @@
-'use client';
-
 import Link from 'next/link';
 import { ArrowLeft, CalendarDays, Check, MapPin, Users } from 'lucide-react';
+import type { PublicProgramBundle } from '../../lib/data/public-programs';
 import { SiteFooter, SiteHeader } from '../site-shell';
-import { getProgram, getProgramCapacity, getProgramSessions, formatDemoDate } from '../../lib/demo/selectors';
-import { useDemo } from '../demo/demo-provider';
-import { DemoNotice, StatusBadge } from '../demo/demo-ui';
 
-export function ProgramDetail({ programId }: { programId: string }) {
-  const { state } = useDemo();
-  const program = getProgram(state, programId);
-  if (!program) return <main className="event-detail-page"><SiteHeader active="/events" /><section className="shell section"><p className="eyebrow">Rookie Rackets</p><h1>Program not found</h1><Link className="button" href="/events">Back to events</Link></section><SiteFooter /></main>;
-  const organization = state.organizations.find((item) => item.id === program.organizationId);
-  const capacity = getProgramCapacity(state, program.id);
-  const sessions = getProgramSessions(state, program.id);
-  const canRegister = ['registration-open', 'active', 'full'].includes(program.status);
-  return <main className="event-detail-page">
-    <SiteHeader active="/events" />
-    <section className="event-detail-hero shell"><Link className="event-detail-back" href="/events"><ArrowLeft size={15} /> Back to upcoming events</Link></section>
-    <section className="event-detail-grid shell">
-      <div><img className="event-detail-photo" src={program.image} alt={`${program.name} workshop`} /><div className="event-detail-schedule"><h2>Schedule</h2>{sessions.length ? sessions.map((session) => <div className="event-detail-session" key={session.id}><strong>{formatDemoDate(session.date, { weekday: 'short', month: 'short', day: 'numeric' })}</strong><span>{session.startTime}–{session.endTime}</span></div>) : <p className="event-detail-disabled">Dates will be shared when this program is confirmed.</p>}</div></div>
-      <div className="event-detail-copy"><StatusBadge status={program.status} /><h1>{program.name}</h1><p>{program.description}</p><dl className="event-detail-meta"><div><dt><CalendarDays size={13} /> Dates</dt><dd>{sessions.length ? `${formatDemoDate(sessions[0].date)} – ${formatDemoDate(sessions[sessions.length - 1].date)}` : 'Dates coming soon'}</dd></div><div><dt><MapPin size={13} /> Location</dt><dd>{program.venue}</dd></div><div><dt><Users size={13} /> Who can join</dt><dd>{program.eligibility}</dd></div><div><dt><Check size={13} /> Cost</dt><dd>{program.price === 0 ? 'Free' : `$${program.price}`}</dd></div></dl><p className="eyebrow">Partner · {organization?.name ?? 'Rookie Rackets'}</p><p>Led by the Rookie Rackets team. No previous experience or equipment is required.</p>
-        <aside className="event-detail-side"><h2>Ready to play?</h2><p>Reserve a place for this demo program. This form is local-only and does not submit anything.</p><div className="event-detail-capacity"><span>Places</span><strong>{capacity.remaining > 0 ? `${capacity.remaining} open` : 'Waitlist available'}</strong></div><div className="event-detail-actions">{canRegister ? <Link className="button" href={`/register/${program.slug}`}>{capacity.remaining > 0 ? 'Register for this program' : 'Join the waitlist'} <span aria-hidden="true">→</span></Link> : <span className="event-detail-disabled">Registration is closed for this program.</span>}<Link className="event-account-link" href="/sign-in?next=/portal/camps">Open family account</Link></div><ul>{program.whatToBring.map((item) => <li key={item}>{item}</li>)}{program.equipmentProvided && <li>Rackets and equipment provided</li>}</ul><small>Registration deadline · {formatDemoDate(program.registrationDeadline)}</small></aside>
-      </div>
-    </section>
-    <DemoNotice>Demo program details · fictional data only. Registration changes are saved in this browser and never sent to Rookie Rackets.</DemoNotice>
-    <SiteFooter />
-  </main>;
+function dateLabel(date: string, weekday = false) { return new Intl.DateTimeFormat('en-US', { weekday: weekday ? 'short' : undefined, month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`)); }
+function timeLabel(time: string) { const [hour, minute] = time.split(':').map(Number); return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' }).format(new Date(Date.UTC(2020, 0, 1, hour, minute))); }
+
+export function ProgramDetail({ bundle }: { bundle: PublicProgramBundle | null }) {
+  if (!bundle) return <main className="event-detail-page"><SiteHeader active="/events" /><section className="shell section"><p className="eyebrow">Rookie Rackets</p><h1>Program not found</h1><p>This program is no longer public or its link has changed.</p><Link className="button" href="/events">Back to events</Link></section><SiteFooter /></main>;
+  const { program, sessions } = bundle;
+  const canRegister = ['registration-open', 'active', 'full'].includes(program.status) && sessions.length > 0;
+  return <main className="event-detail-page"><SiteHeader active="/events" /><section className="event-detail-hero shell"><Link className="event-detail-back" href="/events"><ArrowLeft size={15} /> Back to upcoming events</Link></section><section className="event-detail-grid shell"><div><img className="event-detail-photo" src={program.image || '/images/hero-workshop.webp'} alt={`${program.name} workshop`} /><div className="event-detail-schedule"><h2>Schedule</h2>{sessions.length ? sessions.map((session) => <div className="event-detail-session" key={session.id}><strong>{dateLabel(session.date, true)}</strong><span>{timeLabel(session.startTime)}–{timeLabel(session.endTime)}</span></div>) : <p className="event-detail-disabled">Dates will be shared when this program is confirmed.</p>}</div></div><div className="event-detail-copy"><span className={`status-badge status-${program.status}`}>{program.status.replaceAll('-', ' ')}</span><h1>{program.name}</h1><p>{program.description}</p><dl className="event-detail-meta"><div><dt><CalendarDays size={13} /> Dates</dt><dd>{sessions.length ? `${dateLabel(sessions[0].date)}${sessions.length > 1 ? ` – ${dateLabel(sessions[sessions.length - 1].date)}` : ''}` : 'Dates coming soon'}</dd></div><div><dt><MapPin size={13} /> Location</dt><dd>{program.venue}</dd></div><div><dt><Users size={13} /> Who can join</dt><dd>{program.eligibility}</dd></div><div><dt><Check size={13} /> Cost</dt><dd>{program.priceCents === 0 ? 'Free' : `$${(program.priceCents / 100).toFixed(2)}`}</dd></div></dl><aside className="event-detail-side"><h2>Ready to play?</h2><p>Send the registration form online. The Rookie Rackets team will see it in the staff registration inbox.</p><div className="event-detail-actions">{canRegister ? <Link className="button" href={`/register/${program.slug}`}>{program.status === 'full' ? 'Join the waitlist' : 'Register for this program'} <span aria-hidden="true">→</span></Link> : <span className="event-detail-disabled">Registration is closed for this program.</span>}</div><ul>{program.whatToBring.map((item) => <li key={item}>{item}</li>)}{program.equipmentProvided && <li>Rackets and equipment provided</li>}</ul><small>Registration deadline · {dateLabel(program.registrationDeadline)}</small></aside></div></section><SiteFooter /></main>;
 }

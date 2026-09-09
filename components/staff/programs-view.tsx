@@ -8,6 +8,7 @@ import { formatDemoDate, getProgramCapacity } from '../../lib/demo/selectors';
 import { useDemo } from '../demo/demo-provider';
 import { DemoModal } from '../demo/overlay';
 import { EmptyState, StatusBadge } from '../demo/demo-ui';
+import { useOperations } from '../data/operations-provider';
 
 const statuses: ProgramStatus[] = [
   'active',
@@ -29,7 +30,8 @@ const types: ProgramType[] = [
 ];
 
 export function ProgramsView() {
-  const { state, createProgram } = useDemo();
+  const { state } = useDemo();
+  const operations = useOperations();
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
   const [type, setType] = useState('all');
@@ -73,12 +75,14 @@ export function ProgramsView() {
       registrationDeadline: state.demoDate,
       description: '',
     });
-  const save = (event: React.FormEvent) => {
+  const save = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!draft.name.trim() || !draft.venue.trim()) return;
-    createProgram(draft);
-    setOpen(false);
-    resetDraft();
+    try {
+      await operations.mutate('program:create', (repository) => repository.createProgram({ slug: `${draft.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${crypto.randomUUID().slice(0, 5)}`, name: draft.name, organizationId: draft.organizationId || null, type: draft.type, description: draft.description, venue: draft.venue, skillLevel: 'mixed', eligibility: '', capacity: draft.capacity, leadCoachId: draft.leadCoachId || null, status: draft.status, visibility: draft.visibility, priceCents: Math.round(draft.price * 100), registrationDeadline: draft.registrationDeadline, whatToBring: [], equipmentProvided: true, image: '', contact: operations.state.settings?.contactEmail ?? '' }), 'Program created.');
+      setOpen(false);
+      resetDraft();
+    } catch { /* Keep draft open for retry. */ }
   };
 
   return (
@@ -192,7 +196,7 @@ export function ProgramsView() {
         )}
       </div>
       <DemoModal open={open} title="Create program" onClose={() => setOpen(false)}>
-        <form className="staff-form" onSubmit={save}>
+        <form className="staff-form" onSubmit={(event) => void save(event)}>
           <p className="modal-description">
             New programs start private and in planning, so they will not unexpectedly appear on the public site.
           </p>
@@ -269,8 +273,8 @@ export function ProgramsView() {
             <button type="button" className="staff-button staff-button-outline" onClick={() => setOpen(false)}>
               Cancel
             </button>
-            <button type="submit" className="staff-button">
-              Create program
+            <button type="submit" className="staff-button" disabled={operations.isSaving('program:create')}>
+              {operations.isSaving('program:create') ? 'Creating…' : 'Create program'}
             </button>
           </div>
         </form>

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+vi.mock('../lib/data/public-programs', () => ({ getPublicPrograms: async () => [{ program: { id: 'p', slug: 'fall-program', name: 'Fall Program', description: 'A live program', venue: 'Community gym', status: 'registration-open', priceCents: 0, whatToBring: [], equipmentProvided: true, registrationDeadline: '2026-12-01' }, sessions: [{ id: 's', date: '2026-10-01' }] }] }));
 import About from '../app/about/page';
 import Contact from '../app/contact/page';
 import CompletedEvents from '../app/completed-events/page';
@@ -23,10 +24,10 @@ describe('site routes', () => {
     expect(section?.firstElementChild).toHaveClass('about-coaching-inner', 'shell');
   });
 
-  it('shows the next real session on Upcoming Events', () => {
-    render(<Events />);
+  it('shows the next real session on Upcoming Events', async () => {
+    render(await Events());
     expect(screen.getByRole('heading', { name: /upcoming events/i, level: 1 })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /boys club of raleigh/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /fall program/i })).toBeInTheDocument();
   });
 
   it('preserves the completed event history', () => {
@@ -49,12 +50,16 @@ describe('site routes', () => {
 
   it.each([
     ['About', <About key="about" />],
-    ['Upcoming Events', <Events key="events" />],
     ['Completed Events', <CompletedEvents key="completed" />],
     ['FAQ', <Faq key="faq" />],
     ['Contact', <Contact key="contact" />],
   ])('adds section-entry motion hooks throughout %s', (_name, page) => {
     render(page);
+    expect(document.querySelectorAll('[data-reveal]').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('adds section-entry motion hooks throughout Upcoming Events', async () => {
+    render(await Events());
     expect(document.querySelectorAll('[data-reveal]').length).toBeGreaterThanOrEqual(2);
   });
 });
