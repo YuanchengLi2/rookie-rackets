@@ -60,10 +60,8 @@ export class SupabaseOperationsRepository implements OperationsRepository {
   }
 
   subscribe(onInvalidate: () => void): () => void {
-    const channel = this.supabase.channel('rookie-rackets-operations')
-      .on('postgres_changes', { event: '*', schema: 'public' }, onInvalidate)
-      .subscribe();
-    return () => { void this.supabase.removeChannel(channel); };
+    const timer = window.setInterval(onInvalidate, 5000);
+    return () => window.clearInterval(timer);
   }
 
   async createProgram(draft: ProgramDraft): Promise<Program> {
@@ -136,7 +134,7 @@ export class SupabaseOperationsRepository implements OperationsRepository {
   async archiveFinanceEntry(id: string): Promise<void> { await this.write('finance_entries', 'update', { archived_at: new Date().toISOString() }, id); }
   async updateSettings(patch: Partial<WorkspaceSettings>): Promise<WorkspaceSettings> { const result = await this.supabase.from('workspace_settings').update(clean(toSnakeCaseRecord(patch as Row))).eq('id', true); if (result.error) databaseError(result.error); const state = await this.loadWorkspace(); if (!state.settings) throw new DomainError('NOT_FOUND'); return state.settings; }
   async updateStaffProfile(id: string, patch: Partial<Pick<StaffProfile, 'name' | 'initials' | 'active' | 'role'>>): Promise<StaffProfile> { await this.write('staff_profiles', 'update', clean(toSnakeCaseRecord(patch as Row)), id); return this.findAfter('staffProfiles', id); }
-  async logActivity(action: string, entityType: string, entityId: string | null, summary: string, metadata: Record<string, unknown> = {}): Promise<void> { const result = await this.supabase.rpc('log_activity', { p_action: action, p_entity_type: entityType, p_entity_id: entityId, p_summary: summary, p_metadata: metadata }); if (result.error) databaseError(result.error); }
+  async logActivity(action: string, entityType: string, entityId: string | null, summary: string, metadata: Record<string, unknown> = {}): Promise<void> { const result = await this.supabase.from('activity_log').insert({ actor_id: null, action, entity_type: entityType, entity_id: entityId, summary: summary.slice(0, 500), metadata }); if (result.error) databaseError(result.error); }
 
   private async replaceJoin(table: string, ownerKey: string, targetKey: string, ownerId: string, targetIds: string[]): Promise<void> {
     const removed = await this.supabase.from(table).delete().eq(ownerKey, ownerId);
