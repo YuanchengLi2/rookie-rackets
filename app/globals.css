@@ -91,13 +91,12 @@ body:not(.motion-ready) [data-reveal]{opacity:1;transform:none}.motion-ready [da
 /* September 2026 content refresh */
 .faq-answer>.under-link{display:inline-block;margin:0 0 26px 20px}
 .impact-primary>div>span,.impact-secondary span{max-width:230px;text-align:center;line-height:1.35}
-.network-map{background:radial-gradient(circle at center,rgba(78,132,177,.18) 0 25%,transparent 26%),linear-gradient(135deg,#edf5fa,#f8fbfd);border:1px solid #c9d9e5;min-height:330px;overflow:hidden;position:relative}
+.network-map{background:radial-gradient(circle at center,rgba(78,132,177,.18) 0 25%,transparent 26%),linear-gradient(135deg,#edf5fa,#f8fbfd);border:1px solid #c9d9e5;min-height:420px;overflow:hidden;position:relative}
 .network-map:before,.network-map:after{border:1px solid rgba(51,107,153,.22);border-radius:50%;content:'';left:50%;position:absolute;top:50%;transform:translate(-50%,-50%)}
-.network-map:before{height:230px;width:230px}.network-map:after{height:310px;width:310px}
+.network-map:before{height:230px;width:230px}.network-map:after{height:330px;width:330px}
 .network-map span{align-items:center;border-radius:50%;display:flex;justify-content:center;position:absolute;text-align:center;z-index:1}
-.network-core{background:#173f68;color:#fff;font-size:21px;font-weight:800;height:126px;left:50%;line-height:1.05;top:50%;transform:translate(-50%,-50%);width:126px}
-.network-bubble{background:#fff;border:2px solid #6d9abd;box-shadow:0 8px 22px rgba(31,67,94,.12);color:#173f68;font-size:12px;font-weight:750;line-height:1.2;padding:9px}
-.network-carpenter{height:88px;left:5%;top:8%;width:88px}.network-tmsa{height:84px;right:7%;top:7%;width:84px}.network-vibha{height:68px;right:2%;top:39%;width:68px}.network-anurag{bottom:5%;height:94px;right:9%;width:94px}.network-boys-club{bottom:5%;height:94px;left:7%;width:94px}.network-rjourney{height:74px;left:1%;top:42%;width:74px}.network-peak{bottom:1%;height:72px;left:calc(50% - 36px);width:72px}
+.network-core{background:#173f68;color:#fff;font-size:21px;font-weight:800;height:116px;left:50%;line-height:1.05;top:50%;transform:translate(-50%,-50%);width:116px}
+.network-bubble{background:#fff;border:2px solid #6d9abd;box-shadow:0 8px 22px rgba(31,67,94,.12);color:#173f68;font-size:11px;font-weight:750;height:88px;line-height:1.2;padding:9px;transform:translate(-50%,-50%);width:88px}
 .program-managed-note{color:#516879;font-size:12px;font-weight:700;margin:16px 0 0}
 
 .about-hero .eyebrow{font-size:11px;font-style:normal;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
@@ -115,3 +114,9 @@ body:not(.motion-ready) [data-reveal]{opacity:1;transform:none}.motion-ready [da
 @media(max-width:900px){.site-header{grid-template-columns:82px 1fr auto;min-height:88px}.brand img{height:71px;width:71px}.about-hero img{height:430px}.mentor-grid{order:2}.mission-vision-grid{grid-template-columns:1fr}.completed-metrics{grid-template-columns:repeat(2,1fr)}.completed-metrics span:nth-of-type(odd){border-left:0}.completed-metrics span:nth-of-type(even){border-left:1px solid #c6d1d9}.event-highlight-grid{grid-template-columns:1fr}.event-highlight-grid img{height:380px}}
 @media(max-width:600px){.site-header{grid-template-columns:70px 1fr auto;min-height:80px}.brand img{height:64px;width:64px}.network-map{min-height:340px}.network-bubble{font-size:10px;padding:6px}.network-carpenter{left:2%}.network-tmsa{right:2%}.network-vibha{right:0}.network-anurag{right:3%}.network-boys-club{left:3%}.network-rjourney{left:0}.team-card-grid{grid-template-columns:1fr}.team-card{min-height:0}.team-card>img,.team-card-initials{height:240px}.mentor-grid{grid-template-columns:1fr}.about-coaching .mentor-card img{height:290px}.completed-metrics{grid-template-columns:1fr}.completed-metrics span{border-left:0!important}.event-highlight-grid img{height:260px}.about-story-copy>p{font-size:15px}.mission-vision-grid article{padding:22px}}
 @media(max-width:600px){.home-page .approved-mosaic figure:nth-child(n+4){display:block}}
+
+/* Keep each partner on the same orbit and preserve the complete shirt portraits. */
+.team-card>img,.team-card-initials{height:300px}
+.team-card>img{background:#e6eff6;object-fit:contain;object-position:center}
+@media(max-width:1050px){.network-map{min-height:420px}}
+@media(max-width:600px){.network-map{min-height:370px}.network-map:before{height:190px;width:190px}.network-map:after{height:255px;width:255px}.network-core{font-size:17px;height:98px;width:98px}.network-bubble{font-size:9px;height:72px;padding:6px;width:72px}.team-card>img,.team-card-initials{height:330px}}

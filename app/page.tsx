@@ -4,6 +4,16 @@ import { GalleryLightbox, Testimonials } from '../components/site-interactions';
 import { SiteFooter, SiteHeader } from '../components/site-shell';
 import { homepageHeroSlides, photos } from '../lib/site-photos';
 
+const networkPartners = [
+  'Carpenter Elementary',
+  'TMSA Elementary',
+  'Vibha',
+  'Anurag Foundation',
+  'Raleigh Boys Club',
+  'RJourney',
+  'Peak Sports',
+];
+
 const quotes = [
   { quote: 'The members of Rookie Rackets displayed a level of maturity, organization, and professionalism that is truly exemplary for their age. What truly impressed me was their ability to translate that expertise into effective instruction for beginners.', name: 'Kim Collins', role: 'Principal, Carpenter Elementary' },
   { quote: 'Dhruva liked the camp so much. He loves to continue playing. Great camp!', name: 'Dhruva’s dad', role: 'Rookie Rackets parent' },
@@ -59,15 +69,12 @@ export default function Home() {
     <section className="home-testimonials" data-reveal><div className="shell"><div className="home-section-title testimonial-heading"><h2>What people are saying</h2><span>Families &amp; school partners</span></div><div className="approved-testimonial"><img src="/images/indoor-coaching-session.webp" alt="A coach helping a young badminton player"/><Testimonials quotes={quotes}/></div></div></section>
 
     <section className="home-network shell" data-reveal>
-      <div className="network-map" role="img" aria-label="Rookie Rackets partner network">
+      <div className="network-map" role="group" aria-label="Rookie Rackets partner network">
         <span className="network-core">Rookie<br/>Rackets</span>
-        <span className="network-bubble network-carpenter">Carpenter Elementary</span>
-        <span className="network-bubble network-tmsa">TMSA Elementary</span>
-        <span className="network-bubble network-vibha">Vibha</span>
-        <span className="network-bubble network-anurag">Anurag Foundation</span>
-        <span className="network-bubble network-boys-club">Raleigh Boys Club</span>
-        <span className="network-bubble network-rjourney">RJourney</span>
-        <span className="network-bubble network-peak">Peak Sports</span>
+        {networkPartners.map((partner, index) => {
+          const angle = -Math.PI / 2 + (2 * Math.PI * index) / networkPartners.length;
+          return <span className="network-bubble" key={partner} style={{ left: `${50 + 31 * Math.cos(angle)}%`, top: `${50 + 32 * Math.sin(angle)}%` }}>{partner}</span>;
+        })}
       </div>
       <div><h2>Our growing network</h2><p>We work with schools, nonprofit organizations, groups serving neurodivergent kids and underserved populations, sports facilities, and community events across the Triangle.</p><Link className="text-link" href="/contact">Work with us →</Link></div>
     </section>

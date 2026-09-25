@@ -7,6 +7,7 @@ export const photos = [
   { src: '/images/community-outreach-mayor.webp', alt: 'Rookie Rackets awareness booth at the Anurag Foundation event', caption: 'Anurag Foundation' },
   { src: '/images/vibha-summer-camp.webp', alt: 'Players and coaches at the VIBHA Rookie Rackets summer camp', caption: 'VIBHA Summer Camp' },
   { src: '/images/peak-sports-summer-camp.webp', alt: 'Young players practicing at the Rookie Rackets Peak Sports camp', caption: 'Peak Sports Camp' },
+  { src: '/images/peak-sports-awareness-booth.jpg', alt: 'A visitor learning about Rookie Rackets at the Peak Sports awareness booth', caption: 'Peak Sports awareness booth' },
   { src: '/images/raleigh-boys-club.webp', alt: 'A participant at the Raleigh Boys Club', caption: 'Raleigh Boys Club' },
   { src: '/images/community-badminton-demo.webp', alt: 'Community badminton demonstration', caption: 'Try badminton' },
   { src: '/images/community-open-play-one.webp', alt: 'Community open play on grass', caption: 'Open play' },

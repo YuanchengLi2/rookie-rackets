@@ -2,12 +2,12 @@ import Link from 'next/link';
 import { SiteFooter, SiteHeader } from '../../components/site-shell';
 
 const team = [
-  { name: 'Adithya Burisetty', role: 'Founder & President', since: 'Since 2024', bio: 'Seven years of competitive experience. Leads the organization and teaches singles strategy and footwork.', photo: '/images/adithya-burisetty.webp' },
+  { name: 'Adithya Burisetty', role: 'Founder & President', since: 'Since 2024', bio: 'Seven years of competitive experience. Leads the organization and teaches singles strategy and footwork.' },
   { name: 'Nikhil Peechara', role: 'VP Programs', since: 'Since 2024', bio: 'Five years of competitive experience. Leads program delivery for RJourney and teaches net play and drop shots.', photo: '/images/nikhil-peechara.webp' },
   { name: 'Yuancheng Li', role: 'VP Technology', since: 'Since 2026', bio: 'Builds the technology that supports the team and coaches with an emphasis on confidence and consistency.' },
   { name: 'Aarav Gupta', role: 'VP Programs', since: 'Since 2024', bio: 'Three years of competitive and national-level experience. Leads program delivery for Vibha and supports session planning.', photo: '/images/aarav-gupta.webp' },
-  { name: 'Nathan Kankanala', role: 'VP Curriculum', since: 'Since 2024', bio: 'Six years of competitive badminton experience. Develops beginner fundamentals with a focus on footwork and serve mechanics.', photo: '/images/nathan-kankanala.webp' },
-  { name: 'Vihaan Darbha', role: 'Coach', since: 'Since 2026', bio: 'A nationally ranked player who teaches smashes, movement, and confident net play while supporting Rookie Rackets social media.', photo: '/images/vihaan-darbha.webp' },
+  { name: 'Nathan Kankanala', role: 'VP Curriculum', since: 'Since 2024', bio: 'Six years of competitive badminton experience. Develops beginner fundamentals with a focus on footwork and serve mechanics.' },
+  { name: 'Vihaan Darbha', role: 'Coach', since: 'Since 2026', bio: 'A nationally ranked player who teaches smashes, movement, and confident net play while supporting Rookie Rackets social media.' },
   { name: 'Ishan Kanchi', role: 'Coach', since: 'Since 2026', bio: 'A patient coach who helps first-time players build control and enjoy their first rallies.' },
   { name: 'Tanay Kankanala', role: 'Coach', since: 'Since 2026', bio: 'Supports beginner groups, helps every player feel welcome on court, and contributes to Rookie Rackets social media.', photo: '/images/tanay-kankanala.webp' },
   { name: 'Srineet', role: 'Volunteer', since: 'Since 2026', bio: 'Supports Rookie Rackets programs and community events as the organization continues to grow.' },
