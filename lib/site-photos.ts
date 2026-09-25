@@ -1,0 +1,31 @@
+export const photos = [
+  { src: '/images/story.webp', alt: 'Carpenter Elementary badminton workshop', caption: 'Carpenter Elementary' },
+  { src: '/images/registration.webp', alt: 'Community Smash badminton gathering', caption: 'Community Smash' },
+  { src: '/images/rjourney-group.webp', alt: 'RJourney badminton group', caption: 'RJourney' },
+  { src: '/images/vibha-pickleball.webp', alt: 'A coach sparring during the RJourney summer camp', caption: 'RJourney Summer Camp' },
+  { src: '/images/vibha-community-booth.webp', alt: 'Rookie Rackets at the Vibha Pickleball Tournament awareness booth', caption: 'Vibha Pickleball Tournament' },
+  { src: '/images/community-outreach-mayor.webp', alt: 'Rookie Rackets awareness booth at the Anurag Foundation event', caption: 'Anurag Foundation' },
+  { src: '/images/vibha-summer-camp.webp', alt: 'Players and coaches at the VIBHA Rookie Rackets summer camp', caption: 'VIBHA Summer Camp' },
+  { src: '/images/peak-sports-summer-camp.webp', alt: 'Young players practicing at the Rookie Rackets Peak Sports camp', caption: 'Peak Sports Camp' },
+  { src: '/images/raleigh-boys-club.webp', alt: 'A participant at the Raleigh Boys Club', caption: 'Raleigh Boys Club' },
+  { src: '/images/community-badminton-demo.webp', alt: 'Community badminton demonstration', caption: 'Try badminton' },
+  { src: '/images/community-open-play-one.webp', alt: 'Community open play on grass', caption: 'Open play' },
+  { src: '/images/community-open-play-two.webp', alt: 'Community open play rally', caption: 'Open play rally' },
+  { src: '/images/dreammile-team.webp', alt: 'DreamMile team and participants', caption: 'Vibha DreamMile' },
+  { src: '/images/dreammile-family-play.webp', alt: 'DreamMile family badminton', caption: 'Family badminton' },
+  { src: '/images/dreammile-open-play.webp', alt: 'DreamMile open play', caption: 'Community games' },
+  { src: '/images/indoor-coaching-session.webp', alt: 'Indoor coaching session', caption: 'Beginner coaching' },
+  { src: '/images/peak-court-workshop.webp', alt: 'Young players practicing on the Peak Sports badminton courts', caption: 'Peak Sports workshop' },
+  { src: '/images/peak-coach-demonstration.webp', alt: 'A coach demonstrating a badminton technique to young players', caption: 'Coach demonstration' },
+  { src: '/images/peak-coach-instruction.webp', alt: 'A coach instructing students beside a badminton net', caption: 'Coaching on court' },
+  { src: '/images/junior-court-session.webp', alt: 'Junior players practicing badminton on an indoor court', caption: 'Junior court session' },
+  { src: '/images/school-gym-workshop.webp', alt: 'Young players gathered during a school gym workshop', caption: 'School gym workshop' },
+  { src: '/images/one-on-one-court-coaching.webp', alt: 'A coach helping a student practice by the net', caption: 'Individual coaching' },
+  { src: '/images/court-serve-practice.webp', alt: 'A player practicing a badminton serve', caption: 'Serve practice' },
+  { src: '/images/school-gym-drills.webp', alt: 'Young players practicing badminton drills in a school gym', caption: 'School gym drills' },
+];
+
+export const homepageHeroSlides = [
+  { src: '/images/team-2026.webp', alt: 'Rookie Rackets volunteer team' },
+  { src: '/images/story.webp', alt: 'Carpenter Elementary badminton workshop' },
+];

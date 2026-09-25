@@ -5,8 +5,8 @@ import { useState } from 'react';
 
 const navigation = [
   ['Home', '/'],
-  ['About', '/about'],
-  ['Upcoming Events', '/events'],
+  ['About Us', '/about'],
+  ['Ongoing & Upcoming', '/events'],
   ['Completed Events', '/completed-events'],
   ['FAQ', '/faq'],
 ];
@@ -27,7 +27,6 @@ export function SiteHeader({ active }: { active: string }) {
         ))}
       </nav>
       <div className="header-actions">
-        <Link className="header-sign-in" href="/staff">Dashboard</Link>
         <Link className="button button-small header-cta" href="/contact">Sign Up</Link>
       </div>
     </header>
@@ -38,9 +37,9 @@ export function SiteFooter() {
   return (
     <footer className="site-footer">
       <div className="shell footer-grid">
-        <div className="footer-brand"><img src="/images/logo.png" alt="" /><div><strong>Rookie Rackets</strong><span>Free badminton in North Carolina.</span></div></div>
+        <div className="footer-brand"><img src="/images/logo.png" alt="" /><div><strong>Rookie Rackets</strong><span>Free Badminton in Triangle, NC.</span></div></div>
         <nav aria-label="Footer navigation">
-          <Link href="/about">About</Link><Link href="/events">Events</Link><Link href="/completed-events">Our impact</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link><Link href="/staff">Dashboard</Link>
+          <Link href="/about">About Us</Link><Link href="/events">Events</Link><Link href="/completed-events">Our impact</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link>
         </nav>
         <div className="footer-contact"><span>Cary, North Carolina</span><a href="mailto:teamrookierackets@gmail.com">teamrookierackets@gmail.com</a></div>
       </div>

@@ -1384,6 +1384,9 @@ export type Database = {
           id: string | null
           image: string | null
           name: string | null
+          organization_id: string | null
+          organization_name: string | null
+          organization_website: string | null
           price_cents: number | null
           registration_deadline: string | null
           skill_level: string | null
@@ -1402,6 +1405,9 @@ export type Database = {
           id?: string | null
           image?: string | null
           name?: string | null
+          organization_id?: string | null
+          organization_name?: string | null
+          organization_website?: string | null
           price_cents?: number | null
           registration_deadline?: string | null
           skill_level?: string | null
@@ -1420,6 +1426,9 @@ export type Database = {
           id?: string | null
           image?: string | null
           name?: string | null
+          organization_id?: string | null
+          organization_name?: string | null
+          organization_website?: string | null
           price_cents?: number | null
           registration_deadline?: string | null
           skill_level?: string | null

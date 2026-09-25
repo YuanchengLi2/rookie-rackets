@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 
 export type Photo = { src: string; alt: string; caption: string };
 export type Quote = { quote: string; name: string; role: string };
-export type FaqItem = { question: string; answer: string };
+export type FaqItem = { question: string; answer: string; href?: string; linkLabel?: string };
 
 export function GalleryLightbox({ photos }: { photos: Photo[] }) {
   const [open, setOpen] = useState(false);
@@ -91,13 +91,13 @@ export function FaqAccordion({ items }: { items: FaqItem[] }) {
   return <div className="faq-list">{items.map((item, index) => (
     <div className={`faq-item ${open === index ? 'open' : ''}`} key={item.question}>
       <h3><button aria-expanded={open === index} onClick={() => setOpen(index)} type="button">{item.question}<span aria-hidden="true">{open === index ? '−' : '+'}</span></button></h3>
-      {open === index && <div className="faq-answer"><p>{item.answer}</p></div>}
+      {open === index && <div className="faq-answer"><p>{item.answer}</p>{item.href && item.linkLabel && <a className="under-link" href={item.href}>{item.linkLabel} →</a>}</div>}
     </div>
   ))}</div>;
 }
 
 const gradeOptions = ['Kindergarten','1st Grade','2nd Grade','3rd Grade','4th Grade','5th Grade','6th Grade','7th Grade','8th Grade','9th Grade','10th Grade','11th Grade','12th Grade','17+'];
-const workshopOptions = ['Beginner Fundamentals','Intermediate Skills','Open Play / Practice','Not sure yet'];
+const workshopOptions = ['Beginner camp','Intermediate camp','Open community opportunity','Not sure yet'];
 
 export function SignupForm() {
   const [error, setError] = useState('');
@@ -151,7 +151,7 @@ export function SignupForm() {
         <label>School *<input name="school" required /></label>
       </fieldset>
       <fieldset><legend>Preferences</legend>
-        <label>Which workshops are you interested in? *<select name="workshop" required defaultValue=""><option disabled value="">Select a workshop type…</option>{workshopOptions.map((option) => <option key={option}>{option}</option>)}</select></label>
+        <label>What open opportunity interests you? *<select name="workshop" required defaultValue=""><option disabled value="">Select an opportunity…</option>{workshopOptions.map((option) => <option key={option}>{option}</option>)}</select></label>
         <label>How did you hear about us? *<input name="referral" placeholder="Friend, social media, school…" required /></label>
         <label className="full-field">Questions or comments <span>(optional)</span><textarea name="comments" placeholder="Anything you’d like us to know…" rows={4} /></label>
       </fieldset>

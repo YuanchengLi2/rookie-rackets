@@ -11,6 +11,8 @@ describe('homepage', () => {
     expect(heading.parentElement).toHaveClass('hero-copy-contrast');
     expect(heading.parentElement).not.toHaveClass('hero-copy-panel');
     expect(screen.getByText(/where birdies take flight/i)).toBeInTheDocument();
+    expect(screen.getByText(/making badminton accessible across the triangle/i)).toBeInTheDocument();
+    expect(screen.getByText(/coached by nationally trained players in triangle, nc/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /join waitlist/i })).toHaveAttribute(
       'href',
       '/contact',
@@ -38,9 +40,9 @@ describe('homepage', () => {
     expect(gallery).toHaveClass('hero-media-photo-fade');
     expect(gallery).toHaveClass('hero-media-copy-safe');
     const rotationBar = gallery.querySelector('.hero-rotation-bar');
-    expect(rotationBar?.querySelectorAll('span')).toHaveLength(4);
+    expect(rotationBar?.querySelectorAll('span')).toHaveLength(2);
     expect(rotationBar?.querySelectorAll('span')[0]).toHaveClass('active');
-    expect(gallery.querySelectorAll('img')).toHaveLength(4);
+    expect(gallery.querySelectorAll('img')).toHaveLength(2);
     expect(screen.queryByRole('button', { name: /previous photo/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /next photo/i })).not.toBeInTheDocument();
     expect(gallery.querySelectorAll('img')[0]).toHaveClass('is-active');
@@ -53,17 +55,43 @@ describe('homepage', () => {
     vi.useRealTimers();
   });
 
-  it('preserves every approved homepage section and animated impact value', () => {
+  it('shows the updated impact record and removes the all-ages coaching section', () => {
     render(<Home />);
 
-    expect(screen.getByText('40').closest('[data-count-up]')).toBeInTheDocument();
-    expect(screen.getAllByText('6')[0].closest('[data-count-up]')).toBeInTheDocument();
+    for (const value of ['100', '8', '7', '2', '60']) {
+      expect(screen.getAllByText(value)[0].closest('[data-count-up]')).toBeInTheDocument();
+    }
+    expect(screen.getByText(/introduced to badminton/i)).toBeInTheDocument();
+    expect(screen.getByText(/events.*workshops.*camps.*awareness booth/i)).toBeInTheDocument();
+    expect(screen.queryByText(/events.*since 2025/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/partnered with schools.*organizations in the triangle/i)).toBeInTheDocument();
+    expect(screen.getByText(/years of operations/i)).toBeInTheDocument();
+    expect(screen.getByText(/free all.inclusive workshops/i)).toBeInTheDocument();
+    expect(screen.getByText(/combined tournament wins/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /what we.ve done so far/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /badminton in action/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /coaching for all ages in nc/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /coaching for all ages/i })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /what people are saying/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /our growing network/i })).toBeInTheDocument();
-    expect(document.querySelectorAll('[data-reveal]').length).toBeGreaterThanOrEqual(6);
+    expect(document.querySelectorAll('[data-reveal]').length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('adds the supplied testimonials and presents the network as a visual map', () => {
+    render(<Home />);
+
+    const next = screen.getByRole('button', { name: /next testimonial/i });
+    expect(screen.getByText(/maturity, organization, and professionalism/i)).toBeInTheDocument();
+    fireEvent.click(next);
+    expect(screen.getByText(/dhruva liked the camp so much/i)).toBeInTheDocument();
+    for (let index = 0; index < 3; index += 1) fireEvent.click(next);
+    expect(screen.getByText(/my daughter participated in the rookie rackets camp/i)).toBeInTheDocument();
+    for (let index = 0; index < 3; index += 1) fireEvent.click(next);
+    expect(screen.getByText(/one-week summer camp for kids on the autism spectrum/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/rookie rackets partner network/i)).toBeInTheDocument();
+    for (const partner of ['Carpenter Elementary', 'TMSA Elementary', 'Vibha', 'Anurag Foundation', 'Raleigh Boys Club', 'RJourney', 'Peak Sports']) {
+      expect(screen.getAllByText(partner).length).toBeGreaterThan(0);
+    }
+    expect(screen.getByText(/nonprofit organizations.*neurodivergent kids.*underserved populations.*community events/i)).toBeInTheDocument();
   });
 
   it('includes every supplied photo in the fullscreen gallery', () => {
@@ -73,9 +101,8 @@ describe('homepage', () => {
     const gallery = screen.getByRole('dialog', { name: /badminton in action/i });
     expect(gallery).toBeInTheDocument();
     expect(gallery.parentElement).toBe(document.body);
-    for (const photoNumber of ['7320', '7937', '7953', '7956', '8786', '8787', '8789', '8790']) {
-      expect(screen.getByRole('button', { name: new RegExp(`show rookie rackets photo ${photoNumber}`, 'i') })).toBeInTheDocument();
+    for (const photoName of ['carpenter elementary', 'community smash', 'a coach sparring during the rjourney summer camp', 'rookie rackets at the vibha pickleball', 'a participant at the raleigh boys club', 'young players practicing at the rookie rackets peak sports camp', 'players and coaches at the vibha rookie rackets summer camp', 'community badminton demonstration', 'young players gathered during a school gym workshop', 'a coach helping a student practice by the net']) {
+      expect(screen.getByRole('button', { name: new RegExp(`show ${photoName}`, 'i') })).toBeInTheDocument();
     }
-    expect(screen.getAllByRole('button', { name: /show rookie rackets photo collage/i })).toHaveLength(3);
   });
 });
