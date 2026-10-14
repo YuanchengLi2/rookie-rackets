@@ -97,7 +97,7 @@ export function ProgramDetail({ programId, initialTab }: { programId: string; in
         </div>
         <div className="staff-hero-actions">
           <StatusBadge status={program.status} />
-          {program.visibility === 'public' && <Link className="staff-button staff-button-outline" href={`/events/${program.slug}`}>View public page</Link>}
+          {program.visibility === 'public' && <Link className="staff-button staff-button-outline" href={`/events/${program.slug}`}>View event page</Link>}
           <button
             className="staff-button staff-button-outline"
             type="button"

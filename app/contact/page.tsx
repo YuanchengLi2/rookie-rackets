@@ -1,4 +1,27 @@
 import { SignupForm } from '../../components/site-interactions';
 import { SiteFooter, SiteHeader } from '../../components/site-shell';
 
-export default function Contact(){return <main><SiteHeader active="/contact"/><section data-reveal className="page-hero compact-hero shell"><p className="eyebrow">Join Rookie Rackets</p><h1>Get notified when spots open up.</h1><p>Tell us a little about your player. We’ll send new workshop dates straight to your inbox.</p></section><section data-reveal className="section shell contact-layout"><SignupForm/><aside className="contact-aside"><img src="/images/net-coaching.webp" alt="A coach helping a young badminton player at the net"/><div><p className="eyebrow">What happens next</p><ol><li><span>01</span><p><strong>We save your interest.</strong><br/>You don’t need to choose a specific date yet.</p></li><li><span>02</span><p><strong>You get first notice.</strong><br/>We’ll email when a matching session opens.</p></li><li><span>03</span><p><strong>You confirm your spot.</strong><br/>We share the exact location and details.</p></li></ol></div><div className="direct-contact"><span>Have a partnership idea?</span><a href="mailto:teamrookierackets@gmail.com">teamrookierackets@gmail.com →</a></div></aside></section><SiteFooter/></main>}
+export const metadata = {
+  title: 'Sign up with Rookie Rackets',
+  description: 'Sign up for badminton workshops, adult or junior volunteering, or coaching in the Triangle, North Carolina.',
+};
+
+export default function Contact() {
+  return <main className="signup-page">
+    <SiteHeader active="/contact" />
+    <section className="signup-intro shell" data-reveal>
+      <div className="signup-intro-copy">
+        <p className="eyebrow">Rookie Rackets · Triangle, NC</p>
+        <h1>Sign up.<br /><em>Get involved.</em></h1>
+        <p>Find your place on or around the court. Sign up for a workshop, join as an adult or junior volunteer, or share your skills as a coach.</p>
+        <div className="signup-intro-points"><span>01 / Share your details</span><span>02 / We’ll be in touch</span></div>
+      </div>
+      <figure><img src="/images/team-2026.webp" alt="Rookie Rackets volunteer team on a badminton court" /><figcaption>A community for players, volunteers, and coaches.</figcaption></figure>
+    </section>
+    <section className="signup-main" data-reveal><div className="shell signup-layout">
+      <SignupForm />
+      <aside className="signup-aside"><p className="eyebrow">Find your place</p><h2>Play. Volunteer. Coach.</h2><p>Workshops welcome players of all ages and abilities. Adult and junior volunteers support events, equipment setup, outreach, photography, and fundraising. Coaches help players learn and enjoy badminton.</p><div className="signup-aside-note"><strong>What happens next?</strong><span>Our team will contact you about the opportunity you selected. Workshop interest does not reserve an event place; we’ll share available dates and any host requirements.</span></div><a href="mailto:teamrookierackets@gmail.com">Questions? Email our team ↗</a></aside>
+    </div></section>
+    <SiteFooter />
+  </main>;
+}

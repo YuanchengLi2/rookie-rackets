@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const rpc = vi.fn();
-vi.mock('../lib/supabase/server', () => ({ createServiceSupabaseClient: () => ({ rpc }) }));
+const single = vi.fn();
+const eq = vi.fn(() => ({ single }));
+const select = vi.fn(() => ({ eq }));
+const from = vi.fn(() => ({ select }));
+vi.mock('../lib/supabase/server', () => ({ createServiceSupabaseClient: () => ({ rpc, from }) }));
 
 import { POST } from '../app/api/registrations/route';
 
@@ -15,7 +19,11 @@ const validBody = {
 };
 
 describe('POST /api/registrations', () => {
-  beforeEach(() => rpc.mockReset());
+  beforeEach(() => {
+    rpc.mockReset();
+    single.mockReset();
+    single.mockResolvedValue({ data: { type: 'camp' }, error: null });
+  });
 
   it('validates and submits one idempotent registration', async () => {
     rpc.mockResolvedValue({ data: [{ registration_id: '60000000-0000-4000-8000-000000000001', public_reference: 'RR-ABC12345', registration_status: 'confirmed', payment_status: 'waived' }], error: null });
@@ -24,6 +32,7 @@ describe('POST /api/registrations', () => {
     expect(await response.json()).toEqual({ receipt: { registrationId: '60000000-0000-4000-8000-000000000001', publicReference: 'RR-ABC12345', registrationStatus: 'confirmed', paymentStatus: 'waived' } });
     expect(rpc).toHaveBeenCalledWith('submit_registration', expect.objectContaining({ idempotency_key: validBody.idempotencyKey }));
     expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(from).toHaveBeenCalledWith('public_programs');
   });
 
   it('rejects invalid data without calling Supabase', async () => {
@@ -37,5 +46,13 @@ describe('POST /api/registrations', () => {
     const response = await POST(new Request('http://localhost/api/registrations', { method: 'POST', body: JSON.stringify(validBody) }));
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({ error: { code: 'PROGRAM_CLOSED', message: 'Registration for this program is closed.' } });
+  });
+
+  it('rejects partner-managed programs before calling the registration function', async () => {
+    single.mockResolvedValue({ data: { type: 'recurring-partner-program' }, error: null });
+    const response = await POST(new Request('http://localhost/api/registrations', { method: 'POST', body: JSON.stringify(validBody) }));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: { code: 'PROGRAM_NOT_PUBLICLY_REGISTERABLE', message: 'Online registration is only available for Rookie Rackets camps.' } });
+    expect(rpc).not.toHaveBeenCalled();
   });
 });

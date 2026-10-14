@@ -2,10 +2,11 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { InterestSubmissionSchema, juniorGrades, participantGrades, signupTypes, type SignupType } from '../lib/data/interest-contract';
 
 export type Photo = { src: string; alt: string; caption: string };
 export type Quote = { quote: string; name: string; role: string };
-export type FaqItem = { question: string; answer: string };
+export type FaqItem = { question: string; answer: string; href?: string; linkLabel?: string };
 
 export function GalleryLightbox({ photos }: { photos: Photo[] }) {
   const [open, setOpen] = useState(false);
@@ -91,15 +92,15 @@ export function FaqAccordion({ items }: { items: FaqItem[] }) {
   return <div className="faq-list">{items.map((item, index) => (
     <div className={`faq-item ${open === index ? 'open' : ''}`} key={item.question}>
       <h3><button aria-expanded={open === index} onClick={() => setOpen(index)} type="button">{item.question}<span aria-hidden="true">{open === index ? '−' : '+'}</span></button></h3>
-      {open === index && <div className="faq-answer"><p>{item.answer}</p></div>}
+      {open === index && <div className="faq-answer"><p>{item.answer}</p>{item.href && item.linkLabel && <a className="under-link" href={item.href}>{item.linkLabel} →</a>}</div>}
     </div>
   ))}</div>;
 }
 
-const gradeOptions = ['Kindergarten','1st Grade','2nd Grade','3rd Grade','4th Grade','5th Grade','6th Grade','7th Grade','8th Grade','9th Grade','10th Grade','11th Grade','12th Grade','17+'];
-const workshopOptions = ['Beginner Fundamentals','Intermediate Skills','Open Play / Practice','Not sure yet'];
-
 export function SignupForm() {
+  const [signupType, setSignupType] = useState<SignupType | ''>('');
+  const needsGrade = signupType === 'workshop' || signupType === 'junior-volunteer';
+  const gradeOptions = signupType === 'junior-volunteer' ? juniorGrades : participantGrades;
   const [error, setError] = useState('');
   const [receipt, setReceipt] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -107,13 +108,25 @@ export function SignupForm() {
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
-    const required = Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[required]'));
-    if (required.some((field) => !field.value.trim())) {
-      setError('Please complete the required fields.');
-      required.find((field) => !field.value.trim())?.focus();
+    const invalid = Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[required]')).find((field) => !field.checkValidity());
+    if (invalid) {
+      setError('Please check each field and try again.');
+      invalid.focus();
       return;
     }
     const data = new FormData(form);
+    const parsed = InterestSubmissionSchema.safeParse({
+      signupType,
+      fullName: String(data.get('fullName') ?? ''),
+      phone: String(data.get('phone') ?? ''),
+      email: String(data.get('email') ?? ''),
+      grade: String(data.get('grade') ?? ''),
+      age: Number(data.get('age')),
+    });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0].message);
+      return;
+    }
     setError(''); setSubmitting(true);
     try {
       const response = await fetch('/api/interests', {
@@ -122,7 +135,7 @@ export function SignupForm() {
         body: JSON.stringify({
           idempotencyKey: idempotencyKey.current,
           website: String(data.get('website') ?? ''),
-          submission: Object.fromEntries(['parentName','phone','email','childName','grade','school','workshop','referral','comments'].map((name) => [name, String(data.get(name) ?? '')])),
+          submission: parsed.data,
         }),
       });
       const body = await response.json();
@@ -134,29 +147,24 @@ export function SignupForm() {
       setSubmitting(false);
     }
   };
-  if (receipt) return <div className="form-success" role="status"><span aria-hidden="true">✓</span><p className="eyebrow">Interest saved · {receipt}</p><h2>You’re on the list.</h2><p>Our team can now see your sign-up and will contact you when a matching session opens.</p><button className="text-link" onClick={() => { idempotencyKey.current = crypto.randomUUID(); setReceipt(''); }} type="button">Add another participant →</button></div>;
+  if (receipt) return <div className="form-success" role="status"><span aria-hidden="true">✓</span><p className="eyebrow">Signup received · {receipt}</p><h2>Thanks for signing up.</h2><p>We received your details and notified the Rookie Rackets team. {signupType === 'workshop' ? 'We’ll be in touch about workshop opportunities. This interest signup does not reserve a place at a specific event.' : 'We’ll be in touch about ways to get involved.'}</p><button className="text-link" onClick={() => { idempotencyKey.current = crypto.randomUUID(); setReceipt(''); setSignupType(''); }} type="button">Add another signup →</button></div>;
   return (
     <form className="signup-form" noValidate onSubmit={(event) => void submit(event)}>
-      <div className="form-heading"><div><p className="eyebrow">Parent contact</p><h2>Sign Up for Updates</h2></div><span>Required fields *</span></div>
+      <div className="form-heading"><div><p className="eyebrow">Play, volunteer, or coach</p><h2>Sign up</h2><p>Tell us how you’d like to get involved. If you’re under 18, please provide a parent or guardian’s contact details.</p></div><span>All fields required</span></div>
       {error && <p className="form-error" role="alert">{error}</p>}
       <label className="sr-only" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" /></label>
-      <fieldset><legend>Parent or guardian</legend>
-        <label>Parent / Guardian Name *<input name="parentName" required /></label>
-        <label>Phone Number *<input inputMode="tel" name="phone" required /></label>
-        <label>Email Address *<input inputMode="email" name="email" required type="email" /></label>
-      </fieldset>
-      <fieldset><legend>Participant</legend>
-        <label>Child&apos;s Name *<input name="childName" required /></label>
-        <label>Age / Grade *<select name="grade" required defaultValue=""><option disabled value="">Select…</option>{gradeOptions.map((option) => <option key={option}>{option}</option>)}</select></label>
-        <label>School *<input name="school" required /></label>
-      </fieldset>
-      <fieldset><legend>Preferences</legend>
-        <label>Which workshops are you interested in? *<select name="workshop" required defaultValue=""><option disabled value="">Select a workshop type…</option>{workshopOptions.map((option) => <option key={option}>{option}</option>)}</select></label>
-        <label>How did you hear about us? *<input name="referral" placeholder="Friend, social media, school…" required /></label>
-        <label className="full-field">Questions or comments <span>(optional)</span><textarea name="comments" placeholder="Anything you’d like us to know…" rows={4} /></label>
-      </fieldset>
-      <button className="button form-submit" disabled={submitting} type="submit">{submitting ? 'Saving…' : 'Sign Me Up →'}</button>
-      <p className="privacy-note">Your information stays private. We only use it to notify you about Rookie Rackets sessions.</p>
+      <div className="signup-fields">
+        <label className="full-field">Sign up as<select name="signupType" required value={signupType} onChange={(event) => { setSignupType(event.target.value as SignupType); setError(''); }}><option disabled value="">Choose how to get involved</option>{Object.entries(signupTypes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <label className="full-field">Full name<input autoComplete="name" maxLength={160} name="fullName" placeholder="First and last name" required /></label>
+        <label>Email address<input autoComplete="email" maxLength={254} name="email" placeholder="you@example.com" required type="email" /></label>
+        <label>Phone number<input autoComplete="tel" minLength={7} maxLength={32} name="phone" placeholder="(919) 555-0123" required type="tel" /></label>
+        {needsGrade && <label>Grade<select key={signupType} name="grade" required defaultValue=""><option disabled value="">Select grade</option>{gradeOptions.map((option) => <option key={option}>{option}</option>)}</select></label>}
+        <label>Age<input inputMode="numeric" max={99} min={signupType === 'adult-volunteer' ? 18 : 3} name="age" placeholder="Age" required type="number" /></label>
+      </div>
+      {signupType === 'junior-volunteer' && <p>Junior volunteers must be in middle school or high school (grades 6–12).</p>}
+      {signupType === 'workshop' && <p>Sign up to hear about workshops. Event availability and host eligibility apply; this form does not reserve a place.</p>}
+      <button className="button form-submit" disabled={submitting} type="submit">{submitting ? 'Sending signup…' : 'Sign up →'}</button>
+      <p className="privacy-note">We’ll use your details only to follow up about your Rookie Rackets signup.</p>
     </form>
   );
 }

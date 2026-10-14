@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { InterestReceiptSchema, InterestRequestSchema, toInterestRpcPayload } from '../../../lib/data/interest-contract';
+import { sendInterestNotification } from '../../../lib/email/interest-notification';
 import { createServiceSupabaseClient } from '../../../lib/supabase/server';
 
 function response(body: unknown, status: number) {
@@ -23,6 +24,10 @@ export async function POST(request: Request) {
       ? { interestId: raw.interest_id, publicReference: raw.public_reference }
       : raw;
     const receipt = InterestReceiptSchema.parse(normalized);
+    const notified = await sendInterestNotification(parsed.submission, receipt.publicReference, receipt.interestId);
+    if (!notified) {
+      return response({ error: { code: 'EMAIL_UNAVAILABLE', message: 'Your details were saved, but the email could not be sent. Please try again.' } }, 503);
+    }
     return response({ receipt }, 201);
   } catch (error) {
     if (error instanceof ZodError) {

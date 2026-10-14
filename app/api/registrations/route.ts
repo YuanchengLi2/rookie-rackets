@@ -7,6 +7,7 @@ const safeErrors: Record<string, { status: number; code: string; message: string
   PROGRAM_NOT_FOUND: { status: 404, code: 'PROGRAM_NOT_FOUND', message: 'This program could not be found.' },
   PROGRAM_CLOSED: { status: 409, code: 'PROGRAM_CLOSED', message: 'Registration for this program is closed.' },
   REGISTRATION_CLOSED: { status: 409, code: 'PROGRAM_CLOSED', message: 'Registration for this program is closed.' },
+  PROGRAM_NOT_PUBLICLY_REGISTERABLE: { status: 409, code: 'PROGRAM_NOT_PUBLICLY_REGISTERABLE', message: 'Online registration is only available for Rookie Rackets camps.' },
   INVALID_SESSION_IDS: { status: 422, code: 'INVALID_SESSION_SELECTION', message: 'Choose at least one available program date.' },
   INVALID_SESSION_SELECTION: { status: 422, code: 'INVALID_SESSION_SELECTION', message: 'One or more selected dates are no longer available.' },
 };
@@ -22,6 +23,17 @@ export async function POST(request: Request) {
       return response({ receipt: { registrationId: crypto.randomUUID(), publicReference: `RR-${crypto.randomUUID().replaceAll('-', '').slice(0, 8).toUpperCase()}`, registrationStatus: 'confirmed', paymentStatus: 'waived' } }, 201);
     }
     const supabase = createServiceSupabaseClient();
+    const programResult = await supabase.from('public_programs').select('type').eq('id', parsed.submission.programId).single();
+    if (programResult.error) {
+      return response({ error: { code: 'SERVICE_UNAVAILABLE', message: 'Registration is temporarily unavailable. Your information is still in this form; please try again.' } }, 503);
+    }
+    if (!programResult.data) {
+      return response({ error: { code: 'PROGRAM_NOT_FOUND', message: 'This program could not be found.' } }, 404);
+    }
+    if (programResult.data.type !== 'camp') {
+      const unavailable = safeErrors.PROGRAM_NOT_PUBLICLY_REGISTERABLE;
+      return response({ error: { code: unavailable.code, message: unavailable.message } }, unavailable.status);
+    }
     const result = await supabase.rpc('submit_registration', { payload: toRegistrationRpcPayload(parsed.submission), idempotency_key: parsed.idempotencyKey });
     if (result.error) {
       const known = Object.entries(safeErrors).find(([message]) => String(result.error.message).includes(message))?.[1];

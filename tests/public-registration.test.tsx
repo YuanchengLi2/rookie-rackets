@@ -3,11 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ProgramDetail } from '../components/public/program-detail';
 import { RegistrationWizard } from '../components/public/registration-wizard';
-import type { PublicProgramBundle } from '../lib/data/public-programs';
+import { canPublicRegister, type PublicProgramBundle } from '../lib/data/public-programs';
 
 const bundle: PublicProgramBundle = {
-  program: { id: '30000000-0000-4000-8000-000000000001', slug: 'boys-club-fall', name: 'Boys Club Fall', organizationId: null, type: 'camp', description: 'Beginner badminton.', venue: 'Boys Club', skillLevel: 'beginner', eligibility: 'Grades 3–8', capacity: 24, leadCoachId: null, status: 'registration-open', visibility: 'public', priceCents: 0, registrationDeadline: '2026-12-18', whatToBring: ['Athletic shoes'], equipmentProvided: true, image: '', contact: 'team@example.com', createdAt: '', updatedAt: '', archivedAt: null },
+  program: { id: '30000000-0000-4000-8000-000000000001', slug: 'boys-club-fall', name: 'Raleigh Boys Club Workshops', organizationId: '10000000-0000-4000-8000-000000000001', type: 'camp', description: 'Beginner badminton.', venue: 'Raleigh Boys Club', skillLevel: 'beginner', eligibility: 'Raleigh Boys Club participants in grades 3–6', capacity: 24, leadCoachId: null, status: 'registration-open', visibility: 'public', priceCents: 0, registrationDeadline: '2026-12-18', whatToBring: ['Athletic non-marking shoes'], equipmentProvided: true, image: '', contact: 'team@example.com', createdAt: '', updatedAt: '', archivedAt: null },
   sessions: [{ id: '40000000-0000-4000-8000-000000000001', programId: '30000000-0000-4000-8000-000000000001', date: '2026-10-09', startTime: '16:00:00', endTime: '17:00:00', arrivalTime: '15:40:00', location: 'Boys Club', leadCoachId: null, curriculum: { objective: '', activities: [], coachNotes: '', updatedAt: null }, status: 'scheduled', notes: '', createdAt: '', updatedAt: '' }],
+  partner: { name: 'Raleigh Boys Club', website: 'https://wakejohnstonbgc.org/raleigh-boys-club/' },
 };
 
 afterEach(() => vi.unstubAllGlobals());
@@ -69,18 +70,35 @@ describe('public registration', () => {
     expect(new Set(keys).size).toBe(1);
   });
 
-  it('shows real manual payment instructions without card fields', async () => {
+  it('shows Zelle instructions in review without a payment step or card fields', async () => {
     const user = userEvent.setup(); render(<RegistrationWizard bundle={{ ...bundle, program: { ...bundle.program, priceCents: 4500 } }} />);
-    await fillAndAdvance(user); await user.click(screen.getByRole('button', { name: /continue to payment/i }));
-    expect(screen.getByRole('heading', { name: /payment/i })).toBeInTheDocument();
+    await fillAndAdvance(user); await user.click(screen.getByRole('button', { name: /review registration/i }));
+    expect(screen.getByRole('group', { name: /review registration/i })).toBeInTheDocument();
     expect(screen.getAllByText('$45.00').length).toBeGreaterThan(0);
+    expect(screen.getByText('teamrookierackets@gmail.com')).toBeInTheDocument();
     expect(screen.queryByLabelText(/card number/i)).not.toBeInTheDocument();
-    expect(within(screen.getByLabelText(/registration progress/i)).getByText(/payment/i)).toBeInTheDocument();
+    expect(within(screen.getByLabelText(/registration progress/i)).queryByText(/payment/i)).not.toBeInTheDocument();
   });
 
   it('links program details directly to online registration', () => {
     render(<ProgramDetail bundle={bundle} />);
     expect(screen.getByRole('link', { name: /register for this program/i })).toHaveAttribute('href', '/register/boys-club-fall');
     expect(screen.queryByText(/family account/i)).not.toBeInTheDocument();
+  });
+
+  it('allows public registration only for camps with sessions', () => {
+    expect(canPublicRegister(bundle.program, bundle.sessions)).toBe(true);
+    expect(canPublicRegister({ ...bundle.program, type: 'recurring-partner-program' }, bundle.sessions)).toBe(false);
+    expect(canPublicRegister({ ...bundle.program, type: 'multiweek-school-program' }, bundle.sessions)).toBe(false);
+    expect(canPublicRegister(bundle.program, [])).toBe(false);
+  });
+
+  it('does not offer registration for a partner-managed program', () => {
+    const partnerBundle = { ...bundle, program: { ...bundle.program, type: 'recurring-partner-program' as const } };
+    render(<ProgramDetail bundle={partnerBundle} />);
+    expect(screen.queryByRole('link', { name: /register for this program/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/partner manages participation directly/i)).toBeInTheDocument();
+    expect(screen.getByText(/raleigh boys club participants in grades 3–6/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /visit raleigh boys club website/i })).toHaveAttribute('href', 'https://wakejohnstonbgc.org/raleigh-boys-club/');
   });
 });

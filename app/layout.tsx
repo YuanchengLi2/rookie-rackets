@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
-import { Fredoka, Geist, Geist_Mono, Manrope } from 'next/font/google';
+import { Geist, Geist_Mono, Manrope } from 'next/font/google';
 import './globals.css';
 import './demo.css';
 import './public-flows.css';
 import './portal/portal.css';
 import './staff/staff.css';
 import './demo-polish.css';
+import './signup.css';
 import { RevealMotion } from '../components/motion';
 
 const geistSans = Geist({
@@ -23,14 +24,18 @@ const manrope = Manrope({
   subsets: ['latin'],
 });
 
-const fredoka = Fredoka({
-  variable: '--font-home-display',
-  subsets: ['latin'],
-});
-
 export const metadata: Metadata = {
   title: 'Rookie Rackets | Free Badminton Workshops in NC',
-  description: 'Free, inclusive badminton workshops for all ages in North Carolina.',
+  description: 'Free badminton workshops for all ages and all abilities across the Triangle, NC.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://rookie-rackets.vercel.app'),
+  icons: { icon: [{ url: '/images/logo.png', type: 'image/png' }], apple: '/images/logo.png' },
+  openGraph: {
+    title: 'Rookie Rackets | Free Badminton Workshops',
+    description: 'A student-led nonprofit making badminton accessible across the Triangle, NC.',
+    type: 'website',
+    images: [{ url: '/images/logo.png', width: 1614, height: 1614, alt: 'Rookie Rackets — Where Birdies Take Flight' }],
+  },
+  twitter: { card: 'summary', title: 'Rookie Rackets', description: 'Free badminton workshops for all ages and all abilities.', images: ['/images/logo.png'] },
 };
 
 export default function RootLayout({
@@ -40,7 +45,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} ${fredoka.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} antialiased`}>
         <RevealMotion />
         {children}
       </body>
