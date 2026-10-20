@@ -45,7 +45,7 @@ export function SiteHeader({ active }: { active: string }) {
         ) : <Link className={active === href ? 'active' : ''} href={href} key={href} onClick={closeNavigation}>{label}</Link>)}
       </nav>
       <div className="header-actions">
-        <Link className="header-sign-in" href="/staff">Dashboard</Link>
+        <Link className={`header-sign-in ${active === '/contact-us' ? 'active' : ''}`} href="/contact-us">Contact us</Link>
         <Link className="button button-small header-cta" href="/contact">Sign up</Link>
       </div>
     </header>
@@ -58,7 +58,7 @@ export function SiteFooter() {
       <div className="shell footer-grid">
         <div className="footer-brand"><img src="/images/logo.png" alt="" /><div><strong>Rookie Rackets</strong><span>Free Badminton in Triangle, NC.</span></div></div>
         <nav aria-label="Footer navigation">
-          <Link href="/about">About Us</Link><Link href="/events">Events</Link><Link href="/completed-events">Our impact</Link><Link href="/faq">FAQ</Link><Link href="/contact">Sign up</Link>
+          <Link href="/about">About Us</Link><Link href="/events">Events</Link><Link href="/completed-events">Our impact</Link><Link href="/faq">FAQ</Link><Link href="/contact">Sign up</Link><Link href="/contact-us">Contact us</Link>
         </nav>
         <div className="footer-contact"><span>Cary, North Carolina</span><a href="mailto:teamrookierackets@gmail.com">teamrookierackets@gmail.com</a></div>
       </div>

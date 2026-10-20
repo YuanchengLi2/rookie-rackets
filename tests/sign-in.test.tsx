@@ -10,9 +10,10 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('dashboard entry', () => {
-  it('links to the dashboard from the public header', () => {
+  it('shows Contact us instead of a dashboard link in the public header', () => {
     render(<SiteHeader active="/" />);
-    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/staff');
+    expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Contact us' })).toHaveAttribute('href', '/contact-us');
   });
 
   it('sends legacy sign in visits straight to the dashboard', () => {

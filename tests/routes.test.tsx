@@ -6,6 +6,7 @@ vi.mock('../lib/data/public-programs', () => ({
 }));
 import About from '../app/about/page';
 import Contact from '../app/contact/page';
+import ContactUs from '../app/contact-us/page';
 import CompletedEvents from '../app/completed-events/page';
 import Events from '../app/events/page';
 import Faq from '../app/faq/page';
@@ -79,11 +80,22 @@ describe('site routes', () => {
     expect(screen.getByLabelText(/^full name/i)).toBeInTheDocument();
   });
 
+  it('offers a Contact Us message form linked from the header', () => {
+    render(<ContactUs />);
+    expect(screen.getByRole('heading', { name: /contact us/i, level: 1 })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^topic/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^message/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /send message/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /^contact us$/i })[0]).toHaveAttribute('href', '/contact-us');
+    expect(screen.queryByRole('link', { name: /dashboard/i })).not.toBeInTheDocument();
+  });
+
   it.each([
     ['About', <About key="about" />],
     ['Completed Events', <CompletedEvents key="completed" />],
     ['FAQ', <Faq key="faq" />],
     ['Contact', <Contact key="contact" />],
+    ['Contact Us', <ContactUs key="contact-us" />],
   ])('adds section-entry motion hooks throughout %s', (_name, page) => {
     render(page);
     expect(document.querySelectorAll('[data-reveal]').length).toBeGreaterThanOrEqual(2);

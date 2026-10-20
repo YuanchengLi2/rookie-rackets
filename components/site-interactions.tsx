@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { ContactMessageSchema, contactTopics } from '../lib/data/contact-contract';
 import { InterestSubmissionSchema, juniorGrades, participantGrades, signupTypes, type SignupType } from '../lib/data/interest-contract';
 
 export type Photo = { src: string; alt: string; caption: string };
@@ -165,6 +166,69 @@ export function SignupForm() {
       {signupType === 'workshop' && <p>Sign up to hear about workshops. Event availability and host eligibility apply; this form does not reserve a place.</p>}
       <button className="button form-submit" disabled={submitting} type="submit">{submitting ? 'Sending signup…' : 'Sign up →'}</button>
       <p className="privacy-note">We’ll use your details only to follow up about your Rookie Rackets signup.</p>
+    </form>
+  );
+}
+
+export function ContactForm() {
+  const [error, setError] = useState('');
+  const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const idempotencyKey = useRef(crypto.randomUUID());
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const invalid = Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('[required]')).find((field) => !field.checkValidity());
+    if (invalid) {
+      setError('Please check each field and try again.');
+      invalid.focus();
+      return;
+    }
+    const data = new FormData(form);
+    const parsed = ContactMessageSchema.safeParse({
+      topic: String(data.get('topic') ?? ''),
+      fullName: String(data.get('fullName') ?? ''),
+      email: String(data.get('email') ?? ''),
+      message: String(data.get('message') ?? ''),
+    });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0].message);
+      return;
+    }
+    setError(''); setSubmitting(true);
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idempotencyKey: idempotencyKey.current,
+          website: String(data.get('website') ?? ''),
+          message: parsed.data,
+        }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body?.error?.message ?? 'Your message could not be sent.');
+      setSent(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Your message could not be sent.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  if (sent) return <div className="form-success" role="status"><span aria-hidden="true">✓</span><p className="eyebrow">Message sent</p><h2>Thanks for reaching out.</h2><p>Your message is on its way to the Rookie Rackets team. We’ll reply to the email address you gave us.</p><button className="text-link" onClick={() => { idempotencyKey.current = crypto.randomUUID(); setSent(false); }} type="button">Send another message →</button></div>;
+  return (
+    <form className="signup-form contact-form" noValidate onSubmit={(event) => void submit(event)}>
+      <div className="form-heading"><div><p className="eyebrow">Questions, partnerships, press</p><h2>Send us a message</h2><p>Tell us what’s on your mind and we’ll get back to you by email.</p></div><span>All fields required</span></div>
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <label className="sr-only" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" /></label>
+      <div className="signup-fields">
+        <label>Full name<input autoComplete="name" maxLength={160} minLength={2} name="fullName" placeholder="First and last name" required /></label>
+        <label>Email address<input autoComplete="email" maxLength={254} name="email" placeholder="you@example.com" required type="email" /></label>
+        <label className="full-field">Topic<select name="topic" required defaultValue=""><option disabled value="">Choose a topic</option>{Object.entries(contactTopics).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <label className="full-field">Message<textarea maxLength={4000} minLength={10} name="message" placeholder="How can we help?" required rows={6} /></label>
+      </div>
+      <button className="button form-submit" disabled={submitting} type="submit">{submitting ? 'Sending message…' : 'Send message →'}</button>
+      <p className="privacy-note">We’ll use your details only to reply to your message.</p>
     </form>
   );
 }
