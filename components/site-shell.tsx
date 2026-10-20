@@ -46,7 +46,7 @@ export function SiteHeader({ active }: { active: string }) {
       </nav>
       <div className="header-actions">
         <Link className={`header-sign-in ${active === '/contact-us' ? 'active' : ''}`} href="/contact-us">Contact us</Link>
-        <Link className="button button-small header-cta" href="/contact">Sign up</Link>
+        <Link className="button button-small button-blue header-cta" href="/contact">Sign up</Link>
       </div>
     </header>
   );

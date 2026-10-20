@@ -137,3 +137,7 @@ body:not(.motion-ready) [data-reveal]{opacity:1;transform:none}.motion-ready [da
 #current-events,#upcoming-events{scroll-margin-top:24px}
 @media(max-width:900px){.site-header nav{inset:100% 0 auto;position:absolute;max-height:calc(100dvh - 88px);overflow-y:auto;justify-content:stretch}.events-dropdown{box-shadow:none;margin-top:8px;position:static}.events-toggle{width:100%}.about-coaching-inner{grid-template-columns:1fr}}
 @media(max-width:600px){.home-impact .impact-secondary{grid-template-columns:1fr;gap:18px}.home-impact .impact-secondary div+div{border-left:0;border-top:1px solid #aebfcd;padding-top:18px}.home-impact .impact-secondary div{padding:0 12px 8px;text-align:center}}
+
+/* Blue header Sign Up CTA */
+.header-cta.button-blue{background:#537faa;border-color:#537faa}
+.header-cta.button-blue:hover{background:#456b90;border-color:#456b90}
